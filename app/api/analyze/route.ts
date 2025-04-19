@@ -37,24 +37,38 @@ async function callAnthropicAPI(prompt: string) {
       }),
     });
 
+    let responseText;
+    try {
+      responseText = await response.text();
+      console.log('Raw Anthropic API response:', responseText);
+    } catch (e) {
+      console.error('Failed to read response text:', e);
+      throw new Error('Failed to read API response');
+    }
+
     if (!response.ok) {
-      const errorText = await response.text();
       console.error('Anthropic API Error:', {
         status: response.status,
         statusText: response.statusText,
-        error: errorText
+        error: responseText
       });
       
       // Check if it's a credit-related error
-      if (response.status === 402 || errorText.includes('credit') || errorText.includes('quota')) {
+      if (response.status === 402 || responseText.includes('credit') || responseText.includes('quota')) {
         throw new Error('CREDIT_ERROR');
       }
       
-      throw new Error(`Anthropic API error: ${response.status} ${response.statusText} - ${errorText}`);
+      throw new Error(`Anthropic API error: ${response.status} ${response.statusText} - ${responseText}`);
     }
 
-    const data = await response.json();
-    console.log('Anthropic API Response:', data);
+    let data;
+    try {
+      data = JSON.parse(responseText);
+      console.log('Parsed Anthropic API response:', data);
+    } catch (e) {
+      console.error('Failed to parse API response as JSON:', e);
+      throw new Error('Invalid JSON response from Anthropic API');
+    }
 
     if (!data.content || !data.content[0] || !data.content[0].text) {
       console.error('Invalid response format from Anthropic API:', data);
@@ -88,18 +102,32 @@ async function callTogetherAPI(prompt: string) {
       }),
     });
 
+    let responseText;
+    try {
+      responseText = await response.text();
+      console.log('Raw Together API response:', responseText);
+    } catch (e) {
+      console.error('Failed to read response text:', e);
+      throw new Error('Failed to read API response');
+    }
+
     if (!response.ok) {
-      const errorText = await response.text();
       console.error('Together API Error:', {
         status: response.status,
         statusText: response.statusText,
-        error: errorText
+        error: responseText
       });
-      throw new Error(`Together API error: ${response.status} ${response.statusText} - ${errorText}`);
+      throw new Error(`Together API error: ${response.status} ${response.statusText} - ${responseText}`);
     }
 
-    const data = await response.json();
-    console.log('Together API Response:', data);
+    let data;
+    try {
+      data = JSON.parse(responseText);
+      console.log('Parsed Together API response:', data);
+    } catch (e) {
+      console.error('Failed to parse API response as JSON:', e);
+      throw new Error('Invalid JSON response from Together API');
+    }
 
     if (!data.choices || !data.choices[0] || !data.choices[0].message.content) {
       console.error('Invalid response format from Together API:', data);
@@ -115,7 +143,25 @@ async function callTogetherAPI(prompt: string) {
 
 export async function POST(request: Request) {
   try {
-    const { url, keyword } = await request.json();
+    // Log the incoming request
+    console.log('Received request:', {
+      method: request.method,
+      headers: Object.fromEntries(request.headers.entries()),
+    });
+
+    let requestBody;
+    try {
+      requestBody = await request.json();
+      console.log('Parsed request body:', requestBody);
+    } catch (e) {
+      console.error('Failed to parse request body:', e);
+      return NextResponse.json(
+        { error: "Invalid JSON in request body", details: e instanceof Error ? e.message : 'Unknown error' },
+        { status: 400 }
+      );
+    }
+
+    const { url, keyword } = requestBody;
     
     if (!url) {
       return NextResponse.json(
@@ -272,10 +318,14 @@ export async function POST(request: Request) {
 
     try {
       // Get main analysis from Claude
+      console.log('Calling Anthropic API...');
       mainAnalysis = await callAnthropicAPI(mainPrompt);
+      console.log('Received main analysis from Anthropic API');
       
       // Get additional insights from Mixtral
+      console.log('Calling Together API...');
       additionalInsights = await callTogetherAPI(additionalPrompt);
+      console.log('Received additional insights from Together API');
       
       // Combine the results
       const combinedResult = `${mainAnalysis}\n\n---\n\n### **🔧 Additional Technical Insights**\n\n${additionalInsights}`;
@@ -287,32 +337,40 @@ export async function POST(request: Request) {
       // Return response with caching headers
       return NextResponse.json(result, {
         headers: {
+          'Content-Type': 'application/json',
           'Cache-Control': `public, max-age=${CACHE_DURATION}`,
           'CDN-Cache-Control': `public, max-age=${CACHE_DURATION}`,
           'Vercel-CDN-Cache-Control': `public, max-age=${CACHE_DURATION}`,
         },
       });
     } catch (error) {
+      console.error('Error in API calls:', error);
       if (error instanceof Error && error.message === 'CREDIT_ERROR') {
         // If Claude fails due to credit issues, use Mixtral for both
         console.log('Falling back to Together API for both analyses...');
-        mainAnalysis = await callTogetherAPI(mainPrompt);
-        additionalInsights = await callTogetherAPI(additionalPrompt);
-        
-        const combinedResult = `${mainAnalysis}\n\n---\n\n### **🔧 Additional Technical Insights**\n\n${additionalInsights}`;
-        
-        // Cache the response
-        const result = { result: combinedResult };
-        await cacheResponse(cacheKey, result);
+        try {
+          mainAnalysis = await callTogetherAPI(mainPrompt);
+          additionalInsights = await callTogetherAPI(additionalPrompt);
+          
+          const combinedResult = `${mainAnalysis}\n\n---\n\n### **🔧 Additional Technical Insights**\n\n${additionalInsights}`;
+          
+          // Cache the response
+          const result = { result: combinedResult };
+          await cacheResponse(cacheKey, result);
 
-        // Return response with caching headers
-        return NextResponse.json(result, {
-          headers: {
-            'Cache-Control': `public, max-age=${CACHE_DURATION}`,
-            'CDN-Cache-Control': `public, max-age=${CACHE_DURATION}`,
-            'Vercel-CDN-Cache-Control': `public, max-age=${CACHE_DURATION}`,
-          },
-        });
+          // Return response with caching headers
+          return NextResponse.json(result, {
+            headers: {
+              'Content-Type': 'application/json',
+              'Cache-Control': `public, max-age=${CACHE_DURATION}`,
+              'CDN-Cache-Control': `public, max-age=${CACHE_DURATION}`,
+              'Vercel-CDN-Cache-Control': `public, max-age=${CACHE_DURATION}`,
+            },
+          });
+        } catch (fallbackError) {
+          console.error('Error in fallback API calls:', fallbackError);
+          throw fallbackError;
+        }
       }
       throw error;
     }
