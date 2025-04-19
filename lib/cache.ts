@@ -3,13 +3,14 @@ import { kv } from '@vercel/kv';
 const CACHE_TTL = 60 * 60 * 24; // 24 hours in seconds
 
 // Simple in-memory cache for development
-const memoryCache = new Map<string, { data: string; timestamp: number }>();
+const memoryCache = new Map<string, { data: any; timestamp: number }>();
 
-export async function getCache(key: string): Promise<string | null> {
+export async function getCache(key: string): Promise<any | null> {
   try {
     // Try Vercel KV first
     if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
-      return await kv.get(key);
+      const value = await kv.get(key);
+      return value ? JSON.parse(value as string) : null;
     }
 
     // Fallback to memory cache for development
@@ -24,11 +25,13 @@ export async function getCache(key: string): Promise<string | null> {
   }
 }
 
-export async function setCache(key: string, value: string): Promise<void> {
+export async function setCache(key: string, value: any): Promise<void> {
   try {
+    const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
+    
     // Try Vercel KV first
     if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
-      await kv.set(key, value, { ex: CACHE_TTL });
+      await kv.set(key, stringValue, { ex: CACHE_TTL });
       return;
     }
 

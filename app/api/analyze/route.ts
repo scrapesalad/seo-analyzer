@@ -54,7 +54,7 @@ export async function POST(request: Request) {
     const cached = await getCache(cacheKey);
     if (cached) {
       console.log('Returning cached result');
-      return NextResponse.json(JSON.parse(cached));
+      return NextResponse.json(cached);
     }
 
     console.log('Getting fresh analysis');
@@ -63,10 +63,11 @@ export async function POST(request: Request) {
     console.log('Analysis completed');
     
     // Cache the result
-    await setCache(cacheKey, JSON.stringify({ analysis }));
+    const result = { analysis };
+    await setCache(cacheKey, result);
     console.log('Result cached');
     
-    return NextResponse.json({ analysis });
+    return NextResponse.json(result);
   } catch (error) {
     console.error('Error analyzing SEO:', error);
     const errorMessage = error instanceof Error ? error.message : 'Failed to analyze SEO';
