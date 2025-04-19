@@ -13,6 +13,7 @@ import {
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import Avatar from './components/Avatar';
+import { AIResponse } from '../components/AIResponse';
 
 // Lazy load the charts
 const LineChart = dynamic(() => import('recharts').then(mod => mod.LineChart), { ssr: false });
@@ -79,38 +80,50 @@ export default function SEOAnalyzer() {
     setError(null);
     setSeoData(null);
     setBacklinkData(null);
+    setAnalysis("");
 
     const formattedUrl = formatUrl(url);
     saveToHistory(url);
 
     try {
-      const [seoResponse, backlinkResponse] = await Promise.all([
-        fetch("/api/analyze", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url: formattedUrl, keyword }),
-        }),
-        fetch("/api/backlinks", {
+      // Make SEO analysis request
+      const seoResponse = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: formattedUrl, keyword }),
+      });
+
+      if (!seoResponse.ok) {
+        const errorData = await seoResponse.json();
+        throw new Error(errorData.error || 'Failed to analyze the website');
+      }
+
+      const seoData = await seoResponse.json();
+      setSeoData(seoData);
+      setAnalysis(seoData.analysis || "");
+
+      // Try to get backlinks data if available
+      try {
+        const backlinkResponse = await fetch("/api/backlinks", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ url: formattedUrl }),
-        }),
-      ]);
+        });
 
-      const [seoData, backlinkData] = await Promise.all([
-        seoResponse.json(),
-        backlinkResponse.json(),
-      ]);
-
-      if (seoData.error) {
-        throw new Error(seoData.error);
+        if (backlinkResponse.ok) {
+          const backlinkData = await backlinkResponse.json();
+          setBacklinkData(backlinkData);
+        } else {
+          console.warn('Backlinks analysis not available');
+        }
+      } catch (backlinkError) {
+        console.warn('Failed to fetch backlinks:', backlinkError);
+        // Don't throw error for backlinks failure
       }
 
-      setSeoData(seoData);
-      setBacklinkData(backlinkData);
     } catch (error) {
       console.error('Analysis error:', error);
-      setAnalysis(`Error: ${error instanceof Error ? error.message : 'Failed to analyze the website'}`);
+      setError(error instanceof Error ? error.message : 'Failed to analyze the website');
     } finally {
       setIsLoading(false);
     }
@@ -425,9 +438,7 @@ export default function SEOAnalyzer() {
 
           {analysis && (
             <div className="mt-6 sm:mt-8">
-              <div className="prose prose-gray max-w-none">
-                {formatAnalysis(analysis)}
-              </div>
+              <AIResponse content={analysis} />
             </div>
           )}
 

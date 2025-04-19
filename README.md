@@ -12,9 +12,7 @@ A Next.js application for analyzing website SEO performance.
 
 ## API Integrations
 
-- Together AI API
-- Anthropic API (Claude)
-- OpenAI API
+- Together API (Mixtral)
 
 ## Environment Variables
 
@@ -24,11 +22,8 @@ Create a `.env` file with the following variables:
 # OpenAI API
 OPENAI_API_KEY=your-openai-api-key
 
-# Together AI API
+# Together API
 TOGETHER_API_KEY=your-together-api-key
-
-# Anthropic API
-ANTHROPIC_API_KEY=your-anthropic-api-key
 
 # App URL (for OG image generation)
 NEXT_PUBLIC_APP_URL=http://localhost:3000
