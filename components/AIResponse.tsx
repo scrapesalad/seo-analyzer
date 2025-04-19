@@ -3,10 +3,19 @@
 import React from 'react';
 import { CopyIcon, ThumbsUpIcon, ThumbsDownIcon } from 'lucide-react';
 import { useState } from 'react';
-import { Prism as SyntaxHighlighter } from 'prism-react-renderer';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from '../lib/code-theme';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import type { Components } from 'react-markdown';
+
+interface CodeComponentProps {
+  node: any;
+  inline?: boolean;
+  className?: string;
+  children: React.ReactNode;
+  [key: string]: any;
+}
 
 export function AIResponse({ content }: { content: string }) {
   const [copied, setCopied] = useState(false);
@@ -39,32 +48,22 @@ export function AIResponse({ content }: { content: string }) {
                   p: ({ node, ...props }) => <p className="my-3 leading-relaxed" {...props} />,
                   ul: ({ node, ...props }) => <ul className="list-disc pl-5 space-y-1 my-3" {...props} />,
                   ol: ({ node, ...props }) => <ol className="list-decimal pl-5 space-y-1 my-3" {...props} />,
-                  code({ node, inline, className, children, ...props }) {
+                  code: ({ node, inline, className, children, ...props }: CodeComponentProps) => {
                     const match = /language-(\w+)/.exec(className || '');
                     return !inline ? (
                       <div className="relative">
                         <SyntaxHighlighter
                           language={match?.[1] || 'text'}
-                          style={vscDarkPlus}
+                          style={vscDarkPlus as any}
                           PreTag="div"
                           className="rounded-md text-sm my-4"
-                          showLineNumbers={false}
+                          {...props}
                         >
                           {String(children).replace(/\n$/, '')}
                         </SyntaxHighlighter>
-                        <button
-                          onClick={() => {
-                            navigator.clipboard.writeText(String(children));
-                            setCopied(true);
-                            setTimeout(() => setCopied(false), 2000);
-                          }}
-                          className="absolute top-2 right-2 p-1 rounded bg-gray-700 text-gray-300 hover:bg-gray-600 transition-opacity opacity-0 group-hover:opacity-100"
-                        >
-                          {copied ? 'Copied!' : <CopyIcon className="w-3 h-3" />}
-                        </button>
                       </div>
                     ) : (
-                      <code className="bg-gray-100 dark:bg-gray-800 rounded px-1.5 py-0.5 text-sm font-mono">
+                      <code className="bg-gray-100 dark:bg-gray-800 rounded px-1.5 py-0.5 text-sm" {...props}>
                         {children}
                       </code>
                     );
@@ -83,7 +82,7 @@ export function AIResponse({ content }: { content: string }) {
                   blockquote: ({ node, ...props }) => (
                     <blockquote className="border-l-4 border-gray-300 dark:border-gray-600 pl-4 italic text-gray-600 dark:text-gray-300 my-3" {...props} />
                   ),
-                }}
+                } as Components}
               >
                 {content}
               </Markdown>
