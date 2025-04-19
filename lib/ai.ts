@@ -13,7 +13,8 @@ export async function callTogetherAPI(prompt: string) {
     });
 
     if (!testResponse.ok) {
-      throw new Error(`API key test failed: ${testResponse.status} ${testResponse.statusText}`);
+      const errorText = await testResponse.text();
+      throw new Error(`API key test failed: ${testResponse.status} ${testResponse.statusText} - ${errorText}`);
     }
 
     const models = await testResponse.json();
@@ -48,7 +49,7 @@ export async function callTogetherAPI(prompt: string) {
         statusText: response.statusText,
         error: errorText
       });
-      throw new Error(`Together API error: ${response.status} ${response.statusText}`);
+      throw new Error(`Together API error: ${response.status} ${response.statusText} - ${errorText}`);
     }
 
     const data = await response.json();

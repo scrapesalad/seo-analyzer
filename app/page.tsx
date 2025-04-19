@@ -137,13 +137,13 @@ export default function SEOAnalyzer() {
       });
 
       console.log('SEO response status:', seoResponse.status);
+      const seoData = await seoResponse.json();
+      
       if (!seoResponse.ok) {
-        const errorData = await seoResponse.json();
-        console.error('SEO analysis error:', errorData);
-        throw new Error(errorData.error || 'Failed to analyze the website');
+        console.error('SEO analysis error:', seoData);
+        throw new Error(seoData.error || 'Failed to analyze the website');
       }
 
-      const seoData = await seoResponse.json();
       console.log('SEO data received:', seoData);
       setSeoData(seoData);
       setAnalysis(seoData.analysis || "");

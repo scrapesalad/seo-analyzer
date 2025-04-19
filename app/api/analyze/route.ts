@@ -70,8 +70,13 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Error analyzing SEO:', error);
     const errorMessage = error instanceof Error ? error.message : 'Failed to analyze SEO';
+    // Ensure we always return a properly formatted JSON response
     return NextResponse.json(
-      { error: errorMessage },
+      { 
+        error: errorMessage,
+        status: 'error',
+        timestamp: new Date().toISOString()
+      },
       { status: 500 }
     );
   }
