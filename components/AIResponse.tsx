@@ -1,30 +1,60 @@
 'use client';
 
 import React from 'react';
-import { CopyIcon, ThumbsUpIcon, ThumbsDownIcon } from 'lucide-react';
+import { CopyIcon, ThumbsUpIcon, ThumbsDownIcon, ChevronDownIcon } from 'lucide-react';
 import { useState } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { vscDarkPlus } from '../lib/code-theme';
-import Markdown from 'react-markdown';
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { Components } from 'react-markdown';
 
-interface CodeComponentProps {
-  node: any;
+interface CodeProps {
+  node?: any;
   inline?: boolean;
   className?: string;
-  children: React.ReactNode;
+  children?: React.ReactNode;
   [key: string]: any;
 }
 
-export function AIResponse({ content }: { content: string }) {
+interface AIResponseProps {
+  content: string;
+}
+
+export function AIResponse({ content }: AIResponseProps) {
   const [copied, setCopied] = useState(false);
   const [feedback, setFeedback] = useState<'like' | 'dislike' | null>(null);
+  const [showKeywords, setShowKeywords] = useState(false);
+  const keywordsSection = content.match(/---\nSemantic Keywords\n---\n([\s\S]*?)(?=\n\n|$)/);
+  const keywords = keywordsSection ? keywordsSection[1].split('\n').filter(line => line.trim()) : [];
+  const mainContent = keywordsSection ? content.replace(keywordsSection[0], '') : content;
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(content);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const sections = content.split('---').filter(section => section.trim());
+  
+  const components: Components = {
+    code({ node, inline, className, children, ...props }: CodeProps) {
+      const match = /language-(\w+)/.exec(className || '');
+      return !inline && match ? (
+        <SyntaxHighlighter
+          style={vscDarkPlus as any}
+          language={match[1]}
+          PreTag="div"
+          {...props}
+        >
+          {String(children).replace(/\n$/, '')}
+        </SyntaxHighlighter>
+      ) : (
+        <code className={className} {...props}>
+          {children}
+        </code>
+      );
+    },
   };
 
   return (
@@ -38,55 +68,43 @@ export function AIResponse({ content }: { content: string }) {
           
           <div className="flex-1 min-w-0">
             {/* Response Content */}
-            <div className="prose prose-sm dark:prose-invert max-w-none">
-              <Markdown
-                remarkPlugins={[remarkGfm]}
-                components={{
-                  h1: ({ node, ...props }) => <h2 className="text-xl font-semibold mt-6 mb-3" {...props} />,
-                  h2: ({ node, ...props }) => <h3 className="text-lg font-semibold mt-5 mb-2" {...props} />,
-                  h3: ({ node, ...props }) => <h4 className="text-base font-medium mt-4 mb-2" {...props} />,
-                  p: ({ node, ...props }) => <p className="my-3 leading-relaxed" {...props} />,
-                  ul: ({ node, ...props }) => <ul className="list-disc pl-5 space-y-1 my-3" {...props} />,
-                  ol: ({ node, ...props }) => <ol className="list-decimal pl-5 space-y-1 my-3" {...props} />,
-                  code: ({ node, inline, className, children, ...props }: CodeComponentProps) => {
-                    const match = /language-(\w+)/.exec(className || '');
-                    return !inline ? (
-                      <div className="relative">
-                        <SyntaxHighlighter
-                          language={match?.[1] || 'text'}
-                          style={vscDarkPlus as any}
-                          PreTag="div"
-                          className="rounded-md text-sm my-4"
-                          {...props}
-                        >
-                          {String(children).replace(/\n$/, '')}
-                        </SyntaxHighlighter>
-                      </div>
-                    ) : (
-                      <code className="bg-gray-100 dark:bg-gray-800 rounded px-1.5 py-0.5 text-sm" {...props}>
-                        {children}
-                      </code>
-                    );
-                  },
-                  table: ({ node, ...props }) => (
-                    <div className="overflow-x-auto my-4">
-                      <table className="min-w-full border-collapse" {...props} />
-                    </div>
-                  ),
-                  th: ({ node, ...props }) => (
-                    <th className="border-b border-gray-200 dark:border-gray-700 px-4 py-2 text-left font-medium bg-gray-50 dark:bg-gray-800" {...props} />
-                  ),
-                  td: ({ node, ...props }) => (
-                    <td className="border-b border-gray-100 dark:border-gray-700 px-4 py-2" {...props} />
-                  ),
-                  blockquote: ({ node, ...props }) => (
-                    <blockquote className="border-l-4 border-gray-300 dark:border-gray-600 pl-4 italic text-gray-600 dark:text-gray-300 my-3" {...props} />
-                  ),
-                } as Components}
+            <div className="prose prose-sm sm:prose lg:prose-lg max-w-none">
+              <ReactMarkdown
+                components={components}
               >
-                {content}
-              </Markdown>
+                {mainContent}
+              </ReactMarkdown>
             </div>
+
+            {keywords.length > 0 && (
+              <div className="mt-8 border-t border-gray-200 dark:border-gray-700 pt-6">
+                <button
+                  onClick={() => setShowKeywords(!showKeywords)}
+                  className="flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  <span>Semantic Keywords</span>
+                  <ChevronDownIcon className={`w-4 h-4 transition-transform ${showKeywords ? 'rotate-180' : ''}`} />
+                </button>
+                
+                {showKeywords && (
+                  <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {keywords.map((keyword, index) => (
+                      <div
+                        key={index}
+                        className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
+                      >
+                        <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                          {index + 1}.
+                        </span>{' '}
+                        <span className="text-gray-900 dark:text-gray-100">
+                          {keyword.replace(/^\d+\.\s*/, '')}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Feedback & Copy Buttons */}
             <div className="flex items-center gap-2 mt-4 text-sm text-gray-500 dark:text-gray-400">

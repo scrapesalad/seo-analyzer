@@ -98,7 +98,23 @@ Please provide a comprehensive SEO analysis including:
 11. Social media integration
 12. Priority fixes and recommendations
 
-Format the response in markdown with clear sections and bullet points.`;
+Additionally, provide the top 20 semantic keywords that are most relevant to this URL's content. These should be:
+- Related to the main topic
+- Include variations and long-tail keywords
+- Be naturally occurring in the content
+- Have good search intent alignment
+
+Format the response in markdown with clear sections and bullet points. Use the following format for semantic keywords:
+
+---
+Semantic Keywords
+---
+1. Keyword 1
+2. Keyword 2
+...
+20. Keyword 20
+
+Each keyword should be on its own line and numbered.`;
 
     return await callTogetherAPI(prompt);
   } catch (error) {

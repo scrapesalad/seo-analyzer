@@ -80,10 +80,11 @@ async function getSerpBacklinks(domain: string): Promise<BacklinkResult[]> {
 }
 
 function calculateDAScore(backlinksCount: number): number {
-  const baseScore = 15;
-  const backlinkScore = Math.min(60, Math.log10(backlinksCount + 1) * 15);
-  const trustFactor = Math.min(20, Math.sqrt(backlinksCount) * 2);
-  return Math.round(baseScore + backlinkScore + trustFactor);
+  // Calculate DA using the formula: DA = 20 * log10(backlinks + 1)
+  const daScore = 20 * Math.log10(backlinksCount + 1);
+  
+  // Cap the score at 100
+  return Math.min(100, Math.round(daScore));
 }
 
 function removeDuplicateBacklinks(backlinks: BacklinkResult[]): BacklinkResult[] {

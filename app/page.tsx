@@ -74,6 +74,44 @@ export default function SEOAnalyzer() {
     setShowHistory(false);
   };
 
+  const checkBacklinks = async () => {
+    setIsLoading(true);
+    setError(null);
+    setBacklinkData(null);
+    setDaScore(null);
+
+    const formattedUrl = formatUrl(url);
+    saveToHistory(url);
+
+    try {
+      console.log('Making backlinks request...');
+      const backlinkResponse = await fetch("/api/backlinks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: formattedUrl }),
+      });
+
+      console.log('Backlinks response status:', backlinkResponse.status);
+      if (!backlinkResponse.ok) {
+        const errorData = await backlinkResponse.json();
+        console.error('Backlinks analysis error:', errorData);
+        throw new Error(errorData.error || 'Failed to analyze backlinks');
+      }
+
+      const backlinkData = await backlinkResponse.json();
+      console.log('Backlinks data received:', backlinkData);
+      setBacklinkData(backlinkData);
+      setBacklinks(backlinkData.totalBacklinks || 0);
+      setDaScore(backlinkData.daScore);
+
+    } catch (error) {
+      console.error('Backlink analysis error:', error);
+      setError(error instanceof Error ? error.message : 'Failed to analyze backlinks');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     console.log('Button clicked, starting analysis...');
@@ -122,6 +160,7 @@ export default function SEOAnalyzer() {
           const backlinkData = await backlinkResponse.json();
           console.log('Backlinks data received:', backlinkData);
           setBacklinkData(backlinkData);
+          setBacklinks(backlinkData.totalBacklinks || 0);
         } else {
           console.warn('Backlinks analysis not available');
         }
@@ -445,33 +484,20 @@ export default function SEOAnalyzer() {
             </button>
           </form>
 
+          {error && (
+            <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-600">{error}</p>
+            </div>
+          )}
+
           {analysis && (
             <div className="mt-6 sm:mt-8">
               <AIResponse content={analysis} />
             </div>
           )}
 
-          {/* DA Score Section */}
-          {daScore !== null && (
-            <div className="mt-4 sm:mt-6 p-4 sm:p-6 bg-gray-50 rounded-xl">
-              <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 flex items-center gap-2">
-                <span role="img" aria-label="chart">📈</span>
-                Domain Authority (DA) Score
-              </h2>
-              <div className="flex items-center gap-3 sm:gap-4">
-                <div className="text-3xl sm:text-4xl font-bold text-red-600">{daScore}</div>
-                <div className="text-lg sm:text-xl text-gray-600">/100</div>
-              </div>
-              <p className="text-sm text-gray-600 mt-2">
-                {daScore >= 70 ? "Strong Domain Authority" : 
-                 daScore >= 40 ? "Moderate Domain Authority" : 
-                 "Growing Domain Authority"}
-              </p>
-            </div>
-          )}
-
           {/* Backlinks Section */}
-          {backlinks && (
+          {backlinks !== null && (
             <div className="mt-4 sm:mt-6 p-4 sm:p-6 bg-gray-50 rounded-xl">
               <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 flex items-center gap-2">
                 <span role="img" aria-label="link">🔗</span>
@@ -482,63 +508,78 @@ export default function SEOAnalyzer() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-4 mb-4 sm:mb-6">
                 <div className="bg-white p-3 sm:p-4 rounded-lg border border-gray-200">
                   <div className="text-xs sm:text-sm text-gray-600">Total Backlinks Found</div>
-                  <div className="text-xl sm:text-2xl font-bold text-red-600">{backlinks.length}</div>
-                </div>
-                <div className="bg-white p-3 sm:p-4 rounded-lg border border-gray-200">
-                  <div className="text-xs sm:text-sm text-gray-600">Sources</div>
-                  <div className="flex gap-2 sm:gap-4 mt-1">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                      Google Search
-                    </span>
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                      SERP API
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-3 sm:space-y-4">
-                {backlinks.map((link: any, i: number) => (
-                  <div key={i} className="p-3 sm:p-4 bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow">
-                    <div className="flex items-start justify-between gap-3 sm:gap-4">
-                      <div className="flex-grow">
-                        <a 
-                          href={link.url} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
-                          className="text-base sm:text-lg font-medium text-red-600 hover:text-red-800 hover:underline break-all"
-                        >
-                          {link.title || link.url}
-                        </a>
-                        <div className="text-xs sm:text-sm text-gray-600 mt-2">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-xs text-gray-500">{link.url}</span>
-                            <span 
-                              className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                                link.source === 'google' 
-                                  ? 'bg-red-100 text-red-800' 
-                                  : 'bg-red-100 text-red-800'
-                              }`}
-                            >
-                              {link.source === 'google' ? 'Google Search' : 'SERP API'}
-                            </span>
-                          </div>
-                          {link.snippet && (
-                            <p className="mt-2 text-gray-700">
-                              {link.snippet}
-                            </p>
-                          )}
-                        </div>
+                  <div className="text-xl sm:text-2xl font-bold text-red-600">{backlinks}</div>
+                  {backlinkData?.sources && (
+                    <div className="mt-2 text-xs text-gray-500">
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                          Google: {backlinkData.sources.google}
+                        </span>
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                          SERP: {backlinkData.sources.serp}
+                        </span>
                       </div>
                     </div>
-                  </div>
-                ))}
-                {backlinks.length === 0 && (
-                  <div className="text-center text-gray-600 py-4">
-                    No backlinks found. This might be due to the website being new or not indexed by search engines.
+                  )}
+                </div>
+                {daScore !== null && (
+                  <div className="bg-white p-3 sm:p-4 rounded-lg border border-gray-200">
+                    <div className="text-xs sm:text-sm text-gray-600">Domain Authority (DA) Score</div>
+                    <div className="text-xl sm:text-2xl font-bold text-red-600">{daScore}/100</div>
+                    <div className="mt-2 text-xs text-gray-500">
+                      {daScore >= 70 ? "Strong Domain Authority" : 
+                       daScore >= 40 ? "Moderate Domain Authority" : 
+                       "Growing Domain Authority"}
+                    </div>
                   </div>
                 )}
               </div>
+
+              {backlinkData?.backlinks && backlinkData.backlinks.length > 0 ? (
+                <div className="space-y-3 sm:space-y-4">
+                  <h3 className="text-base sm:text-lg font-medium text-gray-700 mb-2">
+                    Backlink Details
+                  </h3>
+                  {backlinkData.backlinks.map((link: any, i: number) => (
+                    <div key={i} className="p-3 sm:p-4 bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow">
+                      <div className="flex items-start justify-between gap-3 sm:gap-4">
+                        <div className="flex-grow">
+                          <a 
+                            href={link.url} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="text-base sm:text-lg font-medium text-red-600 hover:text-red-800 hover:underline break-all"
+                          >
+                            {link.title || link.url}
+                          </a>
+                          <div className="text-xs sm:text-sm text-gray-600 mt-2">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-xs text-gray-500">{link.url}</span>
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                                link.source === 'google' 
+                                  ? 'bg-red-100 text-red-800' 
+                                  : 'bg-blue-100 text-blue-800'
+                              }`}>
+                                {link.source === 'google' ? 'Google Search' : 'SERP API'}
+                              </span>
+                            </div>
+                            {link.snippet && (
+                              <p className="mt-2 text-gray-700">
+                                {link.snippet}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-6 text-gray-500">
+                  <p>No backlinks found for this domain.</p>
+                  <p className="text-sm mt-1">This could be because the website is new or not yet indexed by search engines.</p>
+                </div>
+              )}
             </div>
           )}
         </div>
