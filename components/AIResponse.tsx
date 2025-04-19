@@ -1,19 +1,19 @@
 'use client';
 
 import React from 'react';
-import { CopyIcon, ThumbsUpIcon, ThumbsDownIcon, ChevronDownIcon } from 'lucide-react';
+import { CopyIcon, ThumbsUpIcon, ThumbsDownIcon } from 'lucide-react';
 import { useState } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import ReactMarkdown from 'react-markdown';
+import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { Components } from 'react-markdown';
 
-interface CodeProps {
-  node?: any;
+interface CodeComponentProps {
+  node: any;
   inline?: boolean;
   className?: string;
-  children?: React.ReactNode;
+  children: React.ReactNode;
   [key: string]: any;
 }
 
@@ -24,10 +24,6 @@ interface AIResponseProps {
 export function AIResponse({ content }: AIResponseProps) {
   const [copied, setCopied] = useState(false);
   const [feedback, setFeedback] = useState<'like' | 'dislike' | null>(null);
-  const [showKeywords, setShowKeywords] = useState(false);
-  const keywordsSection = content.match(/---\nSemantic Keywords\n---\n([\s\S]*?)(?=\n\n|$)/);
-  const keywords = keywordsSection ? keywordsSection[1].split('\n').filter(line => line.trim()) : [];
-  const mainContent = keywordsSection ? content.replace(keywordsSection[0], '') : content;
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(content);
@@ -36,26 +32,6 @@ export function AIResponse({ content }: AIResponseProps) {
   };
 
   const sections = content.split('---').filter(section => section.trim());
-  
-  const components: Components = {
-    code({ node, inline, className, children, ...props }: CodeProps) {
-      const match = /language-(\w+)/.exec(className || '');
-      return !inline && match ? (
-        <SyntaxHighlighter
-          style={vscDarkPlus as any}
-          language={match[1]}
-          PreTag="div"
-          {...props}
-        >
-          {String(children).replace(/\n$/, '')}
-        </SyntaxHighlighter>
-      ) : (
-        <code className={className} {...props}>
-          {children}
-        </code>
-      );
-    },
-  };
 
   return (
     <div className="group w-full border-b border-gray-100 dark:border-gray-800">
@@ -69,42 +45,170 @@ export function AIResponse({ content }: AIResponseProps) {
           <div className="flex-1 min-w-0">
             {/* Response Content */}
             <div className="prose prose-sm sm:prose lg:prose-lg max-w-none">
-              <ReactMarkdown
-                components={components}
-              >
-                {mainContent}
-              </ReactMarkdown>
-            </div>
+              {sections.map((section, index) => {
+                const lines = section.split('\n').filter(line => line.trim());
+                const title = lines[0].trim();
+                const content = lines.slice(1);
 
-            {keywords.length > 0 && (
-              <div className="mt-8 border-t border-gray-200 dark:border-gray-700 pt-6">
-                <button
-                  onClick={() => setShowKeywords(!showKeywords)}
-                  className="flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:underline"
-                >
-                  <span>Semantic Keywords</span>
-                  <ChevronDownIcon className={`w-4 h-4 transition-transform ${showKeywords ? 'rotate-180' : ''}`} />
-                </button>
-                
-                {showKeywords && (
-                  <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {keywords.map((keyword, index) => (
-                      <div
-                        key={index}
-                        className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
-                      >
-                        <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                          {index + 1}.
-                        </span>{' '}
-                        <span className="text-gray-900 dark:text-gray-100">
-                          {keyword.replace(/^\d+\.\s*/, '')}
-                        </span>
+                // Skip empty sections
+                if (!title) return null;
+
+                // Handle the main title section
+                if (title.includes('SEO Analysis for')) {
+                  return (
+                    <div key={index} className="mb-8">
+                      <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+                        <span role="img" aria-label="magnifying glass">🔍</span>
+                        {title.replace(/\*\*/g, '').replace(/^#+\s*/, '')}
+                      </h2>
+                      <div className="bg-white p-6 rounded-lg border border-gray-200">
+                        {content.map((line, i) => (
+                          <p key={i} className="mb-3 text-gray-700">
+                            {line.replace(/\*\*/g, '').replace(/^#+\s*/, '')}
+                          </p>
+                        ))}
                       </div>
-                    ))}
+                    </div>
+                  );
+                }
+
+                // Handle semantic keywords section
+                if (title.includes('Semantic Keywords')) {
+                  return (
+                    <div key={index} className="mb-8">
+                      <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+                        <span role="img" aria-label="keywords">🔑</span>
+                        Top 10 Semantic Keywords
+                      </h2>
+                      <div className="bg-white p-6 rounded-lg border border-gray-200">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {content
+                            .filter(line => line.trim().startsWith('- '))
+                            .map((keyword, i) => (
+                              <div key={i} className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                                <span className="text-red-600 font-medium">{i + 1}.</span>
+                                <span className="text-gray-700">{keyword.replace(/^-\s*/, '')}</span>
+                              </div>
+                            ))}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+
+                // Handle numbered sections
+                if (title.match(/^\d+\./)) {
+                  const sectionNumber = title.match(/^\d+\./)?.[0];
+                  const sectionTitle = title.replace(/^\d+\.\s*/, '').replace(/\*\*/g, '').replace(/^#+\s*/, '');
+                  const emoji = {
+                    'Content Depth and Quality': '📝',
+                    'URL Structure': '🔗',
+                    'H1 Title Tag': '🏷️',
+                    'Internal Links': '↪️',
+                    'Meta Description': '📄',
+                    'Readability': '📖',
+                    'Additional SEO & UX Recommendations': '🚀',
+                    'Final Verdict': '✅'
+                  }[sectionTitle] || '📌';
+
+                  return (
+                    <div key={index} className="mb-8">
+                      <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                        <span role="img" aria-label="section icon">{emoji}</span>
+                        {sectionTitle}
+                      </h3>
+                      <div className="bg-white p-6 rounded-lg border border-gray-200">
+                        {content.map((line, i) => {
+                          // Handle Analysis section
+                          if (line.includes('**Analysis:**')) {
+                            return (
+                              <div key={i} className="mb-6">
+                                <h4 className="font-bold text-gray-800 mb-3">Analysis:</h4>
+                                <ul className="list-disc pl-6 space-y-2">
+                                  {content
+                                    .slice(i + 1)
+                                    .filter(l => l.startsWith('-'))
+                                    .map((item, j) => (
+                                      <li key={j} className="text-gray-700">
+                                        {item.replace(/^-\s*/, '').replace(/\*\*/g, '').replace(/^#+\s*/, '')}
+                                      </li>
+                                    ))}
+                                </ul>
+                              </div>
+                            );
+                          }
+                          
+                          // Handle Action Items section
+                          if (line.includes('**Action Items:**')) {
+                            return (
+                              <div key={i} className="mb-6">
+                                <h4 className="font-bold text-gray-800 mb-3">Action Items:</h4>
+                                <ul className="space-y-2">
+                                  {content
+                                    .slice(i + 1)
+                                    .filter(l => l.startsWith('✅'))
+                                    .map((item, j) => (
+                                      <li key={j} className="flex items-start gap-2 text-gray-700">
+                                        <span className="text-green-500">✅</span>
+                                        <span>{item.replace(/^✅\s*/, '').replace(/\*\*/g, '').replace(/^#+\s*/, '')}</span>
+                                      </li>
+                                    ))}
+                                </ul>
+                              </div>
+                            );
+                          }
+
+                          // Handle numbered recommendations
+                          if (line.match(/^\d+\./)) {
+                            return (
+                              <div key={i} className="mb-4">
+                                <ol className="list-decimal pl-6 space-y-2">
+                                  {content
+                                    .slice(i)
+                                    .filter(l => l.match(/^\d+\./))
+                                    .map((item, j) => (
+                                      <li key={j} className="text-gray-700">
+                                        {item.replace(/^\d+\.\s*/, '').replace(/\*\*/g, '').replace(/^#+\s*/, '')}
+                                      </li>
+                                    ))}
+                                </ol>
+                              </div>
+                            );
+                          }
+
+                          // Handle regular lines that aren't part of special sections
+                          if (!line.includes('**Analysis:**') && !line.includes('**Action Items:**') && !line.match(/^\d+\./)) {
+                            return line ? (
+                              <p key={i} className="mb-3 text-gray-700">
+                                {line.replace(/\*\*/g, '').replace(/^#+\s*/, '')}
+                              </p>
+                            ) : null;
+                          }
+
+                          return null;
+                        })}
+                      </div>
+                    </div>
+                  );
+                }
+
+                // Handle regular sections
+                return (
+                  <div key={index} className="mb-8">
+                    <h3 className="text-xl font-bold mb-4">
+                      {title.replace(/\*\*/g, '').replace(/^#+\s*/, '')}
+                    </h3>
+                    <div className="bg-white p-6 rounded-lg border border-gray-200">
+                      {content.map((line, i) => (
+                        <p key={i} className="mb-3 text-gray-700">
+                          {line.replace(/\*\*/g, '').replace(/^#+\s*/, '')}
+                        </p>
+                      ))}
+                    </div>
                   </div>
-                )}
-              </div>
-            )}
+                );
+              })}
+            </div>
 
             {/* Feedback & Copy Buttons */}
             <div className="flex items-center gap-2 mt-4 text-sm text-gray-500 dark:text-gray-400">

@@ -22,8 +22,8 @@ const BarChart = dynamic(() => import('recharts').then(mod => mod.BarChart), { s
 export default function SEOAnalyzer() {
   const [url, setUrl] = useState("");
   const [keyword, setKeyword] = useState("");
-  const [analysis, setAnalysis] = useState("");
-  const [backlinks, setBacklinks] = useState<any>(null);
+  const [analysis, setAnalysis] = useState<string | null>(null);
+  const [backlinks, setBacklinks] = useState<number | null>(null);
   const [daScore, setDaScore] = useState<number | null>(null);
   const [trafficData, setTrafficData] = useState<any>(null);
   const [detailedTrafficData, setDetailedTrafficData] = useState<any>(null);
@@ -33,6 +33,7 @@ export default function SEOAnalyzer() {
   const [seoData, setSeoData] = useState<any>(null);
   const [backlinkData, setBacklinkData] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [visibleBacklinks, setVisibleBacklinks] = useState(20);
 
   // Load URL history from localStorage on component mount
   useEffect(() => {
@@ -120,6 +121,7 @@ export default function SEOAnalyzer() {
     setSeoData(null);
     setBacklinkData(null);
     setAnalysis("");
+    setDaScore(null);
 
     const formattedUrl = formatUrl(url);
     console.log('Formatted URL:', formattedUrl);
@@ -166,7 +168,26 @@ export default function SEOAnalyzer() {
         }
       } catch (backlinkError) {
         console.warn('Failed to fetch backlinks:', backlinkError);
-        // Don't throw error for backlinks failure
+      }
+
+      // Get Moz DA score
+      try {
+        console.log('Making Moz DA request...');
+        const mozResponse = await fetch("/api/moz-da", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: formattedUrl }),
+        });
+
+        if (mozResponse.ok) {
+          const mozData = await mozResponse.json();
+          console.log('Moz DA score received:', mozData);
+          setDaScore(mozData.da);
+        } else {
+          console.warn('Moz DA score not available');
+        }
+      } catch (mozError) {
+        console.warn('Failed to fetch Moz DA score:', mozError);
       }
 
     } catch (error) {
@@ -524,7 +545,7 @@ export default function SEOAnalyzer() {
                 </div>
                 {daScore !== null && (
                   <div className="bg-white p-3 sm:p-4 rounded-lg border border-gray-200">
-                    <div className="text-xs sm:text-sm text-gray-600">Domain Authority (DA) Score</div>
+                    <div className="text-xs sm:text-sm text-gray-600">Moz Domain Authority (DA) Score</div>
                     <div className="text-xl sm:text-2xl font-bold text-red-600">{daScore}/100</div>
                     <div className="mt-2 text-xs text-gray-500">
                       {daScore >= 70 ? "Strong Domain Authority" : 
@@ -540,7 +561,7 @@ export default function SEOAnalyzer() {
                   <h3 className="text-base sm:text-lg font-medium text-gray-700 mb-2">
                     Backlink Details
                   </h3>
-                  {backlinkData.backlinks.map((link: any, i: number) => (
+                  {backlinkData.backlinks.slice(0, visibleBacklinks).map((link: any, i: number) => (
                     <div key={i} className="p-3 sm:p-4 bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow">
                       <div className="flex items-start justify-between gap-3 sm:gap-4">
                         <div className="flex-grow">
@@ -573,6 +594,16 @@ export default function SEOAnalyzer() {
                       </div>
                     </div>
                   ))}
+                  {backlinkData.backlinks.length > visibleBacklinks && (
+                    <div className="flex justify-center mt-4">
+                      <button
+                        onClick={() => setVisibleBacklinks(prev => prev + 20)}
+                        className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                      >
+                        See More Backlinks
+                      </button>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="text-center py-6 text-gray-500">

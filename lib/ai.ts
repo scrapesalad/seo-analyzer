@@ -84,37 +84,110 @@ export async function analyzeSEO(url: string, keyword?: string): Promise<string>
   try {
     const prompt = `Analyze the SEO of the following URL: ${url}${keyword ? `\nTarget keyword: ${keyword}` : ''}
 
-Please provide a comprehensive SEO analysis including:
-1. Technical SEO assessment
-2. Content quality and relevance
-3. On-page optimization
-4. Mobile-friendliness
-5. Page speed and performance
-6. URL structure
-7. Meta tags and descriptions
-8. Heading structure
-9. Image optimization
-10. Internal linking
-11. Social media integration
-12. Priority fixes and recommendations
+Please provide a comprehensive SEO analysis in the following format:
 
-Additionally, provide the top 20 semantic keywords that are most relevant to this URL's content. These should be:
-- Related to the main topic
-- Include variations and long-tail keywords
-- Be naturally occurring in the content
-- Have good search intent alignment
+### **SEO Analysis for [URL] – Keyword: "[keyword]"**
 
-Format the response in markdown with clear sections and bullet points. Use the following format for semantic keywords:
+This analysis evaluates the website's SEO performance, focusing on content quality, technical SEO, and user experience.
 
 ---
-Semantic Keywords
----
-1. Keyword 1
-2. Keyword 2
-...
-20. Keyword 20
 
-Each keyword should be on its own line and numbered.`;
+## **1. Content Depth and Quality** 📝
+### **Analysis:**
+- **Comprehensiveness:** [analysis of content depth]
+- **User Engagement:** [analysis of user engagement elements]
+- **Update Frequency:** [analysis of content freshness]
+
+### **Action Items:**
+✅ [specific action item 1]
+✅ [specific action item 2]
+✅ [specific action item 3]
+
+---
+
+## **2. URL Structure** 🔗
+### **Analysis:**
+- [analysis of URL structure]
+- [analysis of URL optimization]
+
+### **Action Items:**
+✅ [specific action item 1]
+✅ [specific action item 2]
+
+---
+
+## **3. H1 Title Tag** 🏷️
+### **Analysis:**
+- [analysis of title tag]
+- [analysis of keyword usage]
+
+### **Action Items:**
+✅ [specific action item 1]
+✅ [specific action item 2]
+
+---
+
+## **4. Internal Links** ↪️
+### **Analysis:**
+- [analysis of internal linking]
+- [analysis of link structure]
+
+### **Action Items:**
+✅ [specific action item 1]
+✅ [specific action item 2]
+
+---
+
+## **5. Meta Description** 📄
+### **Analysis:**
+- [analysis of meta description]
+- [analysis of CTA effectiveness]
+
+### **Action Items:**
+✅ [specific action item 1]
+✅ [specific action item 2]
+
+---
+
+## **6. Readability** 📖
+### **Analysis:**
+- [analysis of content readability]
+- [analysis of content structure]
+
+### **Action Items:**
+✅ [specific action item 1]
+✅ [specific action item 2]
+
+---
+
+## **🚀 Additional SEO & UX Recommendations**
+1. [recommendation 1]
+2. [recommendation 2]
+3. [recommendation 3]
+4. [recommendation 4]
+5. [recommendation 5]
+
+---
+
+## **Semantic Keywords** 🔑
+Based on the content and target keyword, here are the top 10 semantic keywords to consider:
+- [semantic keyword 1]
+- [semantic keyword 2]
+- [semantic keyword 3]
+- [semantic keyword 4]
+- [semantic keyword 5]
+- [semantic keyword 6]
+- [semantic keyword 7]
+- [semantic keyword 8]
+- [semantic keyword 9]
+- [semantic keyword 10]
+
+---
+
+### **Final Verdict** ✅
+[summary of key findings and recommendations]
+
+Would you like a deeper dive into **technical SEO** (e.g., crawlability, backlinks) or **content strategy**?`;
 
     return await callTogetherAPI(prompt);
   } catch (error) {
