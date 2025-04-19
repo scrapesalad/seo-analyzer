@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
               marginBottom: '20px',
             }}
           >
-            <span style={{ fontSize: 60, marginRight: '20px' }}>🔍</span>
+            <span style={{ fontSize: 60, marginRight: '20px' }}>🤖</span>
             <span style={{ fontSize: 60, marginRight: '20px' }}>🚀</span>
           </div>
           <div

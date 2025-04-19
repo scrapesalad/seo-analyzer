@@ -43,6 +43,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { 
           error: 'Invalid request format',
+          details: error instanceof Error ? error.message : 'Unknown error',
           status: 'error',
           timestamp: new Date().toISOString()
         },
@@ -78,21 +79,39 @@ export async function POST(request: Request) {
 
     console.log('Getting fresh analysis');
     // Get fresh analysis
-    const analysis = await analyzeSEO(url, keyword);
-    console.log('Analysis completed');
+    let analysis;
+    try {
+      analysis = await analyzeSEO(url, keyword);
+      console.log('Analysis completed successfully');
+    } catch (error) {
+      console.error('Error in analyzeSEO:', error);
+      throw new Error(error instanceof Error ? error.message : 'Failed to analyze SEO');
+    }
+    
+    if (!analysis) {
+      console.error('Analysis result is empty');
+      throw new Error('Empty analysis result');
+    }
     
     // Cache the result
     const result = { analysis };
-    await setCache(cacheKey, result);
-    console.log('Result cached');
+    try {
+      await setCache(cacheKey, result);
+      console.log('Result cached successfully');
+    } catch (cacheError) {
+      console.warn('Failed to cache result:', cacheError);
+      // Continue even if caching fails
+    }
     
     return NextResponse.json(result);
   } catch (error) {
     console.error('Error analyzing SEO:', error);
     const errorMessage = error instanceof Error ? error.message : 'Failed to analyze SEO';
+    const errorDetails = error instanceof Error ? error.stack : undefined;
     return NextResponse.json(
       { 
         error: errorMessage,
+        details: errorDetails,
         status: 'error',
         timestamp: new Date().toISOString()
       },

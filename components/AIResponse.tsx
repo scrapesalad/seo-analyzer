@@ -58,7 +58,7 @@ export function AIResponse({ content }: AIResponseProps) {
                   return (
                     <div key={index} className="mb-8">
                       <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
-                        <span role="img" aria-label="magnifying glass">🔍</span>
+                        <span role="img" aria-label="robot">🤖</span>
                         {title.replace(/\*\*/g, '').replace(/^#+\s*/, '')}
                       </h2>
                       <div className="bg-white p-6 rounded-lg border border-gray-200">

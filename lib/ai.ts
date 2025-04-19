@@ -66,23 +66,38 @@ export async function callTogetherAPI(prompt: string) {
     console.log('Raw Together API response:', JSON.stringify(data, null, 2));
 
     if (!data.choices || !Array.isArray(data.choices) || data.choices.length === 0) {
-      console.error('Invalid response format: missing choices array');
+      console.error('Invalid response format: missing choices array', data);
       throw new Error('Invalid response format: missing choices array');
     }
 
     const firstChoice = data.choices[0];
     if (!firstChoice.message || typeof firstChoice.message.content !== 'string') {
-      console.error('Invalid response format: missing or invalid message content');
+      console.error('Invalid response format: missing or invalid message content', firstChoice);
       throw new Error('Invalid response format: missing or invalid message content');
     }
 
     const content = firstChoice.message.content.trim();
-    console.log('Extracted content:', content.substring(0, 100) + '...');
+    console.log('Extracted content:', content);
 
-    // Validate the response format - checking for any section header
+    // More detailed validation of the response format
     if (!content.includes('SEO Analysis')) {
-      console.error('Invalid response format: missing SEO Analysis section');
+      console.error('Invalid response format: missing SEO Analysis section. Content:', content);
       throw new Error('Invalid response format: missing SEO Analysis section');
+    }
+
+    // Additional validation for required sections
+    const requiredSections = [
+      'Content Depth and Quality',
+      'URL Structure',
+      'H1 Title Tag',
+      'Meta Description',
+      'Final Verdict'
+    ];
+
+    const missingSections = requiredSections.filter(section => !content.includes(section));
+    if (missingSections.length > 0) {
+      console.error(`Missing required sections: ${missingSections.join(', ')}. Content:`, content);
+      throw new Error(`Invalid response format: missing required sections - ${missingSections.join(', ')}`);
     }
 
     return content;
