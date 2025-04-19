@@ -32,7 +32,7 @@ export async function callTogetherAPI(prompt: string) {
         Authorization: `Bearer ${process.env.TOGETHER_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "mistralai/Mixtral-8x7B-Instruct-v0.1", // Default model
+        model: "mistralai/Mixtral-8x7B-Instruct-v0.1",
         messages: [{ role: "user", content: prompt }],
         max_tokens: 2500,
         temperature: 0.7,
@@ -41,34 +41,20 @@ export async function callTogetherAPI(prompt: string) {
       }),
     });
 
-    let responseText;
-    try {
-      responseText = await response.text();
-      console.log('Raw Together API response:', responseText);
-    } catch (e) {
-      console.error('Failed to read response text:', e);
-      throw new Error('Failed to read API response');
-    }
-
     if (!response.ok) {
+      const errorText = await response.text();
       console.error('Together API Error:', {
         status: response.status,
         statusText: response.statusText,
-        error: responseText
+        error: errorText
       });
-      throw new Error(`Together API error: ${response.status} ${response.statusText} - ${responseText}`);
+      throw new Error(`Together API error: ${response.status} ${response.statusText}`);
     }
 
-    let data;
-    try {
-      data = JSON.parse(responseText);
-      console.log('Parsed Together API response:', data);
-    } catch (e) {
-      console.error('Failed to parse API response as JSON:', e);
-      throw new Error('Invalid JSON response from Together API');
-    }
+    const data = await response.json();
+    console.log('Parsed Together API response:', data);
 
-    if (!data.choices || !data.choices[0] || !data.choices[0].message.content) {
+    if (!data.choices?.[0]?.message?.content) {
       console.error('Invalid response format from Together API:', data);
       throw new Error('Invalid response format from Together API');
     }

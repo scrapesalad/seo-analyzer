@@ -69,8 +69,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ analysis });
   } catch (error) {
     console.error('Error analyzing SEO:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to analyze SEO';
     return NextResponse.json(
-      { error: 'Failed to analyze SEO' },
+      { error: errorMessage },
       { status: 500 }
     );
   }
