@@ -8,9 +8,12 @@ import { Analytics } from "@vercel/analytics/react";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://seo-analyzer.vercel.app'),
-  title: "SEO Analyzer - AI-Powered Website Analysis",
-  description: "Free AI-powered SEO analyzer tool. Get comprehensive website analysis and backlink insights. Improve your search rankings with detailed SEO recommendations powered by Claude AI.",
+  metadataBase: new URL('https://seo-analyzer-opal.vercel.app'),
+  title: {
+    template: '%s | AI SEO Analyzer',
+    default: 'AI SEO + Backlink Analyzer',
+  },
+  description: 'AI-powered SEO analysis and backlink checker tool',
   keywords: ["SEO analyzer", "website analysis", "backlink checker", "SEO tools", "Claude AI", "domain authority", "SEO recommendations"],
   authors: [{ name: "SEO Analyzer Team" }],
   creator: "SEO Analyzer",
@@ -21,24 +24,25 @@ export const metadata: Metadata = {
     telephone: false,
   },
   openGraph: {
-    type: "website",
-    title: "AI SEO Analyzer - Free Website Analysis Tool",
-    description: "Free AI-powered SEO analyzer tool. Get comprehensive website analysis, backlink insights, and traffic data.",
+    title: 'AI SEO + Backlink Analyzer',
+    description: 'AI-powered SEO analysis and backlink checker tool',
+    url: "https://seo-analyzer-opal.vercel.app",
     siteName: "AI SEO Analyzer",
-    url: "https://seo-analyzer.vercel.app",
-    images: [{
-      url: "https://seo-analyzer.vercel.app/og-image.png",
-      width: 1200,
-      height: 630,
-      alt: "AI SEO Analyzer"
-    }]
+    images: [
+      {
+        url: "https://seo-analyzer-opal.vercel.app/og-image.png",
+        width: 1200,
+        height: 630,
+      }
+    ],
+    locale: "en_US",
+    type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "AI SEO Analyzer - Free Website Analysis Tool",
-    description: "Free AI-powered SEO analyzer tool. Get comprehensive website analysis, backlink insights, and traffic data.",
-    images: ["https://seo-analyzer.vercel.app/og-image.png"],
-    creator: "@seoanalyzer"
+    title: "AI SEO + Backlink Analyzer",
+    description: "AI-powered SEO analysis and backlink checker tool",
+    images: ["https://seo-analyzer-opal.vercel.app/og-image.png"],
   },
   robots: {
     index: true,
@@ -52,11 +56,11 @@ export const metadata: Metadata = {
     },
   },
   verification: {
-    google: "your-google-site-verification",
+    google: process.env.NEXT_PUBLIC_GOOGLE_VERIFICATION,
   },
   alternates: {
-    canonical: "https://seo-analyzer.vercel.app"
-  }
+    canonical: "https://seo-analyzer-opal.vercel.app"
+  },
 };
 
 export default function RootLayout({

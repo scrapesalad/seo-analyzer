@@ -1,47 +1,49 @@
-# SEO Analyzer
+# AI SEO + Backlink Analyzer
 
-A Next.js application for analyzing website SEO performance.
+AI-powered SEO analysis and backlink checker tool. Get comprehensive website analysis, backlink insights, and actionable recommendations.
+
+## Live Demo
+
+Visit [https://seo-analyzer-opal.vercel.app](https://seo-analyzer-opal.vercel.app) to try it out.
 
 ## Features
 
-- SEO analysis using AI
-- Backlink analysis
-- URL formatting and validation
-- Mobile-responsive design
-- Real-time processing feedback
-
-## API Integrations
-
-- Together API (Mixtral)
+- AI-powered SEO analysis using Together AI
+- Backlink analysis using Google Custom Search and SERP API
+- Domain Authority (DA) score calculation
+- Caching with Vercel KV (Redis)
+- Modern UI with Tailwind CSS
+- Real-time analysis and recommendations
 
 ## Environment Variables
 
-Create a `.env` file with the following variables:
+Copy `.env.example` to `.env.local` and fill in your API keys:
 
-```env
-# OpenAI API
-OPENAI_API_KEY=your-openai-api-key
-
-# Together API
+```bash
 TOGETHER_API_KEY=your-together-api-key
-
-# App URL (for OG image generation)
-NEXT_PUBLIC_APP_URL=http://localhost:3000
+GOOGLE_API_KEY=your-google-api-key
+GOOGLE_CX=your-google-cx
+SERP_API_KEY=your-serp-api-key
+NEXT_PUBLIC_APP_URL=https://seo-analyzer-opal.vercel.app
 ```
 
-## Getting Started
+## Development
 
-1. Clone the repository
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Set up environment variables
-4. Run the development server:
-   ```bash
-   npm run dev
-   ```
+```bash
+# Install dependencies
+npm install
+
+# Run development server
+npm run dev
+```
 
 ## Deployment
 
-The application can be deployed to Vercel with automatic deployments from GitHub. 
+The project is deployed on Vercel with the following features:
+- Vercel KV for caching
+- Edge Functions for API routes
+- Environment variables for API keys
+
+## License
+
+MIT 
