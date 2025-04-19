@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { headers } from "next/headers";
 
 if (!process.env.ANTHROPIC_API_KEY) {
   throw new Error('ANTHROPIC_API_KEY is not defined in environment variables');
@@ -10,6 +11,9 @@ if (!process.env.TOGETHER_API_KEY) {
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const TOGETHER_API_KEY = process.env.TOGETHER_API_KEY;
+
+// Cache duration in seconds (1 hour)
+const CACHE_DURATION = 3600;
 
 async function callAnthropicAPI(prompt: string) {
   try {
@@ -112,12 +116,19 @@ async function callTogetherAPI(prompt: string) {
 export async function POST(request: Request) {
   try {
     const { url, keyword } = await request.json();
-
+    
     if (!url) {
       return NextResponse.json(
-        { error: 'URL is required' },
+        { error: "URL is required" },
         { status: 400 }
       );
+    }
+
+    // Check if we have a cached response
+    const cacheKey = `analyze:${url}:${keyword || ''}`;
+    const cachedResponse = await getCachedResponse(cacheKey);
+    if (cachedResponse) {
+      return cachedResponse;
     }
 
     // Main analysis prompt for Claude
@@ -269,7 +280,18 @@ export async function POST(request: Request) {
       // Combine the results
       const combinedResult = `${mainAnalysis}\n\n---\n\n### **🔧 Additional Technical Insights**\n\n${additionalInsights}`;
       
-      return NextResponse.json({ result: combinedResult });
+      // Cache the response
+      const result = { result: combinedResult };
+      await cacheResponse(cacheKey, result);
+
+      // Return response with caching headers
+      return NextResponse.json(result, {
+        headers: {
+          'Cache-Control': `public, max-age=${CACHE_DURATION}`,
+          'CDN-Cache-Control': `public, max-age=${CACHE_DURATION}`,
+          'Vercel-CDN-Cache-Control': `public, max-age=${CACHE_DURATION}`,
+        },
+      });
     } catch (error) {
       if (error instanceof Error && error.message === 'CREDIT_ERROR') {
         // If Claude fails due to credit issues, use Mixtral for both
@@ -279,7 +301,18 @@ export async function POST(request: Request) {
         
         const combinedResult = `${mainAnalysis}\n\n---\n\n### **🔧 Additional Technical Insights**\n\n${additionalInsights}`;
         
-        return NextResponse.json({ result: combinedResult });
+        // Cache the response
+        const result = { result: combinedResult };
+        await cacheResponse(cacheKey, result);
+
+        // Return response with caching headers
+        return NextResponse.json(result, {
+          headers: {
+            'Cache-Control': `public, max-age=${CACHE_DURATION}`,
+            'CDN-Cache-Control': `public, max-age=${CACHE_DURATION}`,
+            'Vercel-CDN-Cache-Control': `public, max-age=${CACHE_DURATION}`,
+          },
+        });
       }
       throw error;
     }
@@ -290,4 +323,27 @@ export async function POST(request: Request) {
       details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
   }
+}
+
+// Simple in-memory cache (you might want to use Redis or similar in production)
+const cache = new Map<string, { data: any; timestamp: number }>();
+
+async function getCachedResponse(key: string): Promise<NextResponse | null> {
+  const cached = cache.get(key);
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION * 1000) {
+    return NextResponse.json(cached.data, {
+      headers: {
+        'X-Cache': 'HIT',
+        'Cache-Control': `public, max-age=${CACHE_DURATION}`,
+      },
+    });
+  }
+  return null;
+}
+
+async function cacheResponse(key: string, data: any) {
+  cache.set(key, {
+    data,
+    timestamp: Date.now(),
+  });
 } 

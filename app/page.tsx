@@ -1,17 +1,22 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
   CartesianGrid,
   Tooltip,
   Legend,
   ResponsiveContainer,
-  BarChart,
+  Line,
+  XAxis,
+  YAxis,
   Bar
 } from 'recharts';
+import Image from 'next/image';
+import dynamic from 'next/dynamic';
+import Avatar from './components/Avatar';
+
+// Lazy load the charts
+const LineChart = dynamic(() => import('recharts').then(mod => mod.LineChart), { ssr: false });
+const BarChart = dynamic(() => import('recharts').then(mod => mod.BarChart), { ssr: false });
 
 export default function SEOAnalyzer() {
   const [url, setUrl] = useState("");
@@ -362,10 +367,12 @@ export default function SEOAnalyzer() {
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 p-2 sm:p-4 md:p-6">
       <div className="max-w-3xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
         <div className="px-3 py-4 sm:px-4 md:px-6">
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-center mb-4 sm:mb-6 md:mb-8 flex items-center justify-center gap-2">
-            <span role="img" aria-label="magnifying glass">🔍</span>
-            AI SEO + Backlink Analyzer
-          </h1>
+          <div className="flex items-center justify-center gap-4 mb-4 sm:mb-6 md:mb-8">
+            <Avatar isThinking={isLoading} />
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-center">
+              AI SEO + Backlink Analyzer
+            </h1>
+          </div>
           
           <form onSubmit={analyzeSEO} className="space-y-4 sm:space-y-6">
             <div>
@@ -547,17 +554,19 @@ export default function SEOAnalyzer() {
                 <div className="mt-6 sm:mt-8">
                   <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Monthly Traffic Trends</h3>
                   <div className="h-60 sm:h-80">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={detailedTrafficData.historical}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="date" />
-                        <YAxis />
-                        <Tooltip />
-                        <Legend />
-                        <Line type="monotone" dataKey="visits" stroke="#dc2626" name="Visits" />
-                        <Line type="monotone" dataKey="pageViews" stroke="#991b1b" name="Pages/Visit" />
-                      </LineChart>
-                    </ResponsiveContainer>
+                    <Suspense fallback={<div className="h-full flex items-center justify-center">Loading chart...</div>}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={detailedTrafficData.historical}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="date" />
+                          <YAxis />
+                          <Tooltip />
+                          <Legend />
+                          <Line type="monotone" dataKey="visits" stroke="#dc2626" name="Visits" />
+                          <Line type="monotone" dataKey="pageViews" stroke="#991b1b" name="Pages/Visit" />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </Suspense>
                   </div>
                 </div>
               )}

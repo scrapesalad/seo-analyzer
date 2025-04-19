@@ -35,11 +35,23 @@ interface DetailedTrafficData {
 async function getHistoricalData(domain: string): Promise<HistoricalData[]> {
   try {
     const response = await fetch(
-      `https://api.similarweb.com/v1/website/${domain}/traffic-and-engagement/visits?api_key=${SIMILARWEB_API_KEY}&start_date=2023-01&end_date=2023-12&granularity=monthly`
+      `https://api.similarweb.com/v1/website/${domain}/total-traffic-and-engagement/visits?api_key=${SIMILARWEB_API_KEY}&start_date=2023-01&end_date=2023-12&granularity=monthly`,
+      {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      }
     );
 
     if (!response.ok) {
-      throw new Error(`Historical data API request failed: ${response.statusText}`);
+      const errorText = await response.text();
+      console.error('Historical data API error:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText
+      });
+      return [];
     }
 
     const data = await response.json();
@@ -53,15 +65,32 @@ async function getHistoricalData(domain: string): Promise<HistoricalData[]> {
 async function getCompetitorData(domain: string): Promise<CompetitorData[]> {
   try {
     const response = await fetch(
-      `https://api.similarweb.com/v1/website/${domain}/competitors/competitors?api_key=${SIMILARWEB_API_KEY}`
+      `https://api.similarweb.com/v1/website/${domain}/competitors/domains?api_key=${SIMILARWEB_API_KEY}`,
+      {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      }
     );
 
     if (!response.ok) {
-      throw new Error(`Competitor data API request failed: ${response.statusText}`);
+      const errorText = await response.text();
+      console.error('Competitor data API error:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText
+      });
+      return [];
     }
 
     const data = await response.json();
-    return data.competitors || [];
+    return data.domains?.map((domain: any) => ({
+      domain: domain.domain,
+      globalRank: domain.globalRank || 0,
+      totalVisits: domain.totalVisits || 0,
+      category: domain.category || 'Unknown'
+    })) || [];
   } catch (error) {
     console.error('Error fetching competitor data:', error);
     return [];
@@ -100,7 +129,11 @@ export async function POST(request: Request) {
       );
     }
 
-    const cleanDomain = url.replace(/^(https?:\/\/)?(www\.)?/, '');
+    // Clean and format the domain
+    const cleanDomain = url
+      .replace(/^(https?:\/\/)?(www\.)?/, '')
+      .split('/')[0] // Remove any paths
+      .toLowerCase();
     
     const [historical, competitors] = await Promise.all([
       getHistoricalData(cleanDomain),

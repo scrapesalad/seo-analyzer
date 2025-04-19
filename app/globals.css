@@ -1,3 +1,19 @@
 @tailwind base;
 @tailwind components;
-@tailwind utilities; 
+@tailwind utilities;
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+}
+
+.pulsing {
+  animation: pulse 1.5s infinite cubic-bezier(0.4, 0, 0.6, 1);
+  transition: all 0.3s ease;
+} 
