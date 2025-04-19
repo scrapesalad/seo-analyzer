@@ -137,16 +137,27 @@ export default function SEOAnalyzer() {
       });
 
       console.log('SEO response status:', seoResponse.status);
-      const seoData = await seoResponse.json();
+      let seoData;
+      try {
+        seoData = await seoResponse.json();
+      } catch (jsonError) {
+        console.error('Failed to parse SEO response:', jsonError);
+        throw new Error('Invalid response from server');
+      }
       
       if (!seoResponse.ok) {
         console.error('SEO analysis error:', seoData);
-        throw new Error(seoData.error || 'Failed to analyze the website');
+        throw new Error(seoData?.error || 'Failed to analyze the website');
+      }
+
+      if (!seoData?.analysis) {
+        console.error('Invalid SEO data format:', seoData);
+        throw new Error('Invalid response format from server');
       }
 
       console.log('SEO data received:', seoData);
       setSeoData(seoData);
-      setAnalysis(seoData.analysis || "");
+      setAnalysis(seoData.analysis);
 
       // Try to get backlinks data if available
       try {

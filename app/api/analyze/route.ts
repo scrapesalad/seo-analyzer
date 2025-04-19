@@ -35,13 +35,32 @@ interface GoogleResponse {
 export async function POST(request: Request) {
   console.log('Received analyze request');
   try {
-    const { url, keyword } = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch (error) {
+      console.error('Failed to parse request body:', error);
+      return NextResponse.json(
+        { 
+          error: 'Invalid request format',
+          status: 'error',
+          timestamp: new Date().toISOString()
+        },
+        { status: 400 }
+      );
+    }
+
+    const { url, keyword } = body;
     console.log('Request data:', { url, keyword });
     
     if (!url) {
       console.error('URL is required');
       return NextResponse.json(
-        { error: 'URL is required' },
+        { 
+          error: 'URL is required',
+          status: 'error',
+          timestamp: new Date().toISOString()
+        },
         { status: 400 }
       );
     }
@@ -71,7 +90,6 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Error analyzing SEO:', error);
     const errorMessage = error instanceof Error ? error.message : 'Failed to analyze SEO';
-    // Ensure we always return a properly formatted JSON response
     return NextResponse.json(
       { 
         error: errorMessage,
