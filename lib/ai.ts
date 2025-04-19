@@ -54,19 +54,31 @@ export async function callTogetherAPI(prompt: string) {
     }
 
     const data = await response.json();
-    console.log('Parsed Together API response:', data);
+    console.log('Raw Together API response:', JSON.stringify(data, null, 2));
 
-    if (!data.choices?.[0]?.message?.content) {
-      console.error('Invalid response format from Together API:', data);
-      throw new Error('Invalid response format from Together API');
+    if (!data.choices || !Array.isArray(data.choices) || data.choices.length === 0) {
+      console.error('Invalid response format: missing choices array');
+      throw new Error('Invalid response format: missing choices array');
     }
 
-    const content = data.choices[0].message.content;
-    
+    const firstChoice = data.choices[0];
+    if (!firstChoice.message || typeof firstChoice.message.content !== 'string') {
+      console.error('Invalid response format: missing or invalid message content');
+      throw new Error('Invalid response format: missing or invalid message content');
+    }
+
+    const content = firstChoice.message.content.trim();
+    console.log('Extracted content:', content.substring(0, 100) + '...');
+
     // Validate the response format
-    if (!content.includes('### **SEO Analysis for') || !content.includes('### **Final Verdict**')) {
-      console.error('Invalid response format: missing required sections');
-      throw new Error('Invalid response format: missing required sections');
+    if (!content.includes('### **SEO Analysis for')) {
+      console.error('Invalid response format: missing SEO Analysis section');
+      throw new Error('Invalid response format: missing SEO Analysis section');
+    }
+
+    if (!content.includes('### **Final Verdict**')) {
+      console.error('Invalid response format: missing Final Verdict section');
+      throw new Error('Invalid response format: missing Final Verdict section');
     }
 
     return content;
