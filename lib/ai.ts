@@ -1,9 +1,3 @@
-import OpenAI from 'openai';
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
 export async function callTogetherAPI(prompt: string) {
   if (!process.env.TOGETHER_API_KEY) {
     throw new Error('TOGETHER_API_KEY is not defined in environment variables');
