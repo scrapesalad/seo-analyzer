@@ -50,7 +50,7 @@ async function callAnthropicAPI(prompt: string) {
         throw new Error('CREDIT_ERROR');
       }
       
-      throw new Error(`Anthropic API error: ${response.status} ${response.statusText}`);
+      throw new Error(`Anthropic API error: ${response.status} ${response.statusText} - ${errorText}`);
     }
 
     const data = await response.json();
@@ -67,7 +67,7 @@ async function callAnthropicAPI(prompt: string) {
       throw error;
     }
     console.error('Error calling Anthropic API:', error);
-    throw new Error('Failed to call Anthropic API');
+    throw new Error(`Failed to call Anthropic API: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 
@@ -95,7 +95,7 @@ async function callTogetherAPI(prompt: string) {
         statusText: response.statusText,
         error: errorText
       });
-      throw new Error(`Together API error: ${response.status} ${response.statusText}`);
+      throw new Error(`Together API error: ${response.status} ${response.statusText} - ${errorText}`);
     }
 
     const data = await response.json();
@@ -109,7 +109,7 @@ async function callTogetherAPI(prompt: string) {
     return data.choices[0].message.content;
   } catch (error) {
     console.error('Error calling Together API:', error);
-    throw new Error('Failed to call Together API');
+    throw new Error(`Failed to call Together API: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 
@@ -318,10 +318,18 @@ export async function POST(request: Request) {
     }
   } catch (error) {
     console.error('Error in analyze route:', error);
-    return NextResponse.json({ 
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorResponse = { 
       error: "API Error",
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+      details: errorMessage,
+      timestamp: new Date().toISOString()
+    };
+    return NextResponse.json(errorResponse, { 
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
   }
 }
 
