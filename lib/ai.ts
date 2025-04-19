@@ -39,6 +39,7 @@ export async function callTogetherAPI(prompt: string) {
         temperature: 0.7,
         top_p: 0.9,
         repetition_penalty: 1.1,
+        response_format: { type: "text" }
       }),
     });
 
@@ -60,7 +61,15 @@ export async function callTogetherAPI(prompt: string) {
       throw new Error('Invalid response format from Together API');
     }
 
-    return data.choices[0].message.content;
+    const content = data.choices[0].message.content;
+    
+    // Validate the response format
+    if (!content.includes('### **SEO Analysis for') || !content.includes('### **Final Verdict**')) {
+      console.error('Invalid response format: missing required sections');
+      throw new Error('Invalid response format: missing required sections');
+    }
+
+    return content;
   } catch (error) {
     console.error('Error calling Together API:', error);
     throw error;
