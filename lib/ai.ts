@@ -34,12 +34,21 @@ export async function callTogetherAPI(prompt: string) {
       },
       body: JSON.stringify({
         model: "mistralai/Mixtral-8x7B-Instruct-v0.1",
-        messages: [{ role: "user", content: prompt }],
+        messages: [
+          {
+            role: "system",
+            content: "You are an SEO expert. Provide detailed SEO analysis in markdown format."
+          },
+          {
+            role: "user",
+            content: prompt
+          }
+        ],
         max_tokens: 2500,
         temperature: 0.7,
         top_p: 0.9,
         repetition_penalty: 1.1,
-        response_format: { type: "text" }
+        stop: ["</s>", "###"]
       }),
     });
 
