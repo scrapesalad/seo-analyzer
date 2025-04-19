@@ -9,12 +9,9 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://seo-analyzer.vercel.app'),
-  title: {
-    default: "AI SEO Analyzer - Free Website Analysis Tool",
-    template: "%s | AI SEO Analyzer"
-  },
-  description: "Free AI-powered SEO analyzer tool. Get comprehensive website analysis, backlink insights, and traffic data. Improve your search rankings with detailed SEO recommendations powered by Claude AI.",
-  keywords: ["SEO analyzer", "website analysis", "backlink checker", "SEO tool", "free SEO analysis", "AI SEO", "website optimization", "search engine optimization", "Claude AI", "domain authority", "traffic analysis", "SEO recommendations"],
+  title: "SEO Analyzer - AI-Powered Website Analysis",
+  description: "Free AI-powered SEO analyzer tool. Get comprehensive website analysis and backlink insights. Improve your search rankings with detailed SEO recommendations powered by Claude AI.",
+  keywords: ["SEO analyzer", "website analysis", "backlink checker", "SEO tools", "Claude AI", "domain authority", "SEO recommendations"],
   authors: [{ name: "SEO Analyzer Team" }],
   creator: "SEO Analyzer",
   publisher: "SEO Analyzer",

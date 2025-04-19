@@ -29,6 +29,9 @@ export default function SEOAnalyzer() {
   const [isLoading, setIsLoading] = useState(false);
   const [urlHistory, setUrlHistory] = useState<string[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [seoData, setSeoData] = useState<any>(null);
+  const [backlinkData, setBacklinkData] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
 
   // Load URL history from localStorage on component mount
   useEffect(() => {
@@ -70,21 +73,18 @@ export default function SEOAnalyzer() {
     setShowHistory(false);
   };
 
-  const analyzeSEO = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setAnalysis("");
-    setBacklinks(null);
-    setDaScore(null);
-    setTrafficData(null);
-    setDetailedTrafficData(null);
+    setError(null);
+    setSeoData(null);
+    setBacklinkData(null);
 
     const formattedUrl = formatUrl(url);
     saveToHistory(url);
 
     try {
-      // Run all API calls in parallel
-      const [seoResponse, backlinkResponse, trafficResponse, detailedTrafficResponse] = await Promise.all([
+      const [seoResponse, backlinkResponse] = await Promise.all([
         fetch("/api/analyze", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -95,41 +95,19 @@ export default function SEOAnalyzer() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ url: formattedUrl }),
         }),
-        fetch("/api/traffic", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url: formattedUrl }),
-        }),
-        fetch("/api/traffic/detailed", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url: formattedUrl }),
-        })
       ]);
 
-      // Check if any response failed
-      if (!seoResponse.ok) {
-        const errorData = await seoResponse.json();
-        throw new Error(errorData.error || 'Failed to analyze SEO');
-      }
-
-      const [seoData, backlinkData, trafficData, detailedTrafficData] = await Promise.all([
+      const [seoData, backlinkData] = await Promise.all([
         seoResponse.json(),
         backlinkResponse.json(),
-        trafficResponse.json(),
-        detailedTrafficResponse.json()
       ]);
 
-      // Validate SEO analysis response
-      if (!seoData.result) {
-        throw new Error('No analysis result received');
+      if (seoData.error) {
+        throw new Error(seoData.error);
       }
 
-      setAnalysis(seoData.result);
-      setDaScore(backlinkData.daScore);
-      setBacklinks(backlinkData.backlinks);
-      setTrafficData(trafficData);
-      setDetailedTrafficData(detailedTrafficData);
+      setSeoData(seoData);
+      setBacklinkData(backlinkData);
     } catch (error) {
       console.error('Analysis error:', error);
       setAnalysis(`Error: ${error instanceof Error ? error.message : 'Failed to analyze the website'}`);
@@ -374,7 +352,7 @@ export default function SEOAnalyzer() {
             </h1>
           </div>
           
-          <form onSubmit={analyzeSEO} className="space-y-4 sm:space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">
                 Website URL
@@ -469,135 +447,6 @@ export default function SEOAnalyzer() {
                  daScore >= 40 ? "Moderate Domain Authority" : 
                  "Growing Domain Authority"}
               </p>
-            </div>
-          )}
-
-          {/* Traffic Analysis Section */}
-          {trafficData && (
-            <div className="mt-4 sm:mt-6 p-4 sm:p-6 bg-gray-50 rounded-xl">
-              <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 flex items-center gap-2">
-                <span role="img" aria-label="chart">📈</span>
-                Traffic Analysis
-                <span className="text-xs sm:text-sm font-normal text-gray-500 ml-2">
-                  (Last Updated: {trafficData.lastUpdated})
-                </span>
-              </h2>
-
-              {/* Trends Section */}
-              {detailedTrafficData?.trends && (
-                <div className="mb-4 sm:mb-6 grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
-                  <div className="bg-white p-3 sm:p-4 rounded-lg border border-gray-200">
-                    <div className="text-xs sm:text-sm text-gray-600">Monthly Visits Trend</div>
-                    <div className="text-base sm:text-lg font-bold">
-                      {renderTrendIndicator(detailedTrafficData.trends.visitsChange, true)}
-                    </div>
-                  </div>
-                  <div className="bg-white p-3 sm:p-4 rounded-lg border border-gray-200">
-                    <div className="text-xs sm:text-sm text-gray-600">Bounce Rate Trend</div>
-                    <div className="text-base sm:text-lg font-bold">
-                      {renderTrendIndicator(detailedTrafficData.trends.bounceRateChange)}
-                    </div>
-                  </div>
-                  <div className="bg-white p-3 sm:p-4 rounded-lg border border-gray-200">
-                    <div className="text-xs sm:text-sm text-gray-600">Pages per Visit Trend</div>
-                    <div className="text-base sm:text-lg font-bold">
-                      {renderTrendIndicator(detailedTrafficData.trends.pageViewsChange)}
-                    </div>
-                  </div>
-                  <div className="bg-white p-3 sm:p-4 rounded-lg border border-gray-200">
-                    <div className="text-xs sm:text-sm text-gray-600">Visit Duration Trend</div>
-                    <div className="text-base sm:text-lg font-bold">
-                      {renderTrendIndicator(detailedTrafficData.trends.durationChange)}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Current Metrics */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
-                <div className="bg-white p-3 sm:p-4 rounded-lg border border-gray-200">
-                  <div className="text-xs sm:text-sm text-gray-600">Global Rank</div>
-                  <div className="text-xl sm:text-2xl font-bold text-red-600">
-                    {trafficData.globalRank > 0 
-                      ? `#${trafficData.globalRank.toLocaleString()}`
-                      : 'N/A'}
-                  </div>
-                </div>
-                <div className="bg-white p-3 sm:p-4 rounded-lg border border-gray-200">
-                  <div className="text-xs sm:text-sm text-gray-600">Monthly Visits</div>
-                  <div className="text-xl sm:text-2xl font-bold text-red-600">
-                    {trafficData.totalVisits > 0
-                      ? `${(trafficData.totalVisits / 1000000).toFixed(1)}M`
-                      : 'N/A'}
-                  </div>
-                </div>
-                <div className="bg-white p-3 sm:p-4 rounded-lg border border-gray-200">
-                  <div className="text-xs sm:text-sm text-gray-600">Avg. Visit Duration</div>
-                  <div className="text-xl sm:text-2xl font-bold text-red-600">
-                    {trafficData.avgVisitDuration > 0
-                      ? `${Math.round(trafficData.avgVisitDuration / 60)} mins`
-                      : 'N/A'}
-                  </div>
-                </div>
-                <div className="bg-white p-3 sm:p-4 rounded-lg border border-gray-200">
-                  <div className="text-xs sm:text-sm text-gray-600">Bounce Rate</div>
-                  <div className="text-xl sm:text-2xl font-bold text-red-600">
-                    {trafficData.bounceRate > 0
-                      ? `${Math.round(trafficData.bounceRate)}%`
-                      : 'N/A'}
-                  </div>
-                </div>
-              </div>
-
-              {/* Historical Data Chart */}
-              {detailedTrafficData?.historical?.length > 0 && (
-                <div className="mt-6 sm:mt-8">
-                  <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Monthly Traffic Trends</h3>
-                  <div className="h-60 sm:h-80">
-                    <Suspense fallback={<div className="h-full flex items-center justify-center">Loading chart...</div>}>
-                      <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={detailedTrafficData.historical}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="date" />
-                          <YAxis />
-                          <Tooltip />
-                          <Legend />
-                          <Line type="monotone" dataKey="visits" stroke="#dc2626" name="Visits" />
-                          <Line type="monotone" dataKey="pageViews" stroke="#991b1b" name="Pages/Visit" />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    </Suspense>
-                  </div>
-                </div>
-              )}
-
-              {/* Competitor Comparison */}
-              {detailedTrafficData?.competitors?.length > 0 && (
-                <div className="mt-6 sm:mt-8">
-                  <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Top Competitors</h3>
-                  <div className="h-60 sm:h-80">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={detailedTrafficData.competitors}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="domain" />
-                        <YAxis />
-                        <Tooltip />
-                        <Legend />
-                        <Bar dataKey="totalVisits" fill="#dc2626" name="Monthly Visits" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                  <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4">
-                    {detailedTrafficData.competitors.map((competitor: any, index: number) => (
-                      <div key={index} className="bg-white p-3 sm:p-4 rounded-lg border border-gray-200">
-                        <div className="text-sm font-medium text-gray-900">{competitor.domain}</div>
-                        <div className="text-xs sm:text-sm text-gray-600">Global Rank: #{competitor.globalRank}</div>
-                        <div className="text-xs sm:text-sm text-gray-600">Category: {competitor.category}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           )}
 
