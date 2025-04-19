@@ -79,15 +79,10 @@ export async function callTogetherAPI(prompt: string) {
     const content = firstChoice.message.content.trim();
     console.log('Extracted content:', content.substring(0, 100) + '...');
 
-    // Validate the response format
-    if (!content.includes('### **SEO Analysis for')) {
+    // Validate the response format - checking for any section header
+    if (!content.includes('SEO Analysis')) {
       console.error('Invalid response format: missing SEO Analysis section');
       throw new Error('Invalid response format: missing SEO Analysis section');
-    }
-
-    if (!content.includes('### **Final Verdict**')) {
-      console.error('Invalid response format: missing Final Verdict section');
-      throw new Error('Invalid response format: missing Final Verdict section');
     }
 
     return content;
@@ -103,81 +98,83 @@ export async function analyzeSEO(url: string, keyword?: string): Promise<string>
 
 Please provide a comprehensive SEO analysis in the following format:
 
-### **SEO Analysis for ${url}**${keyword ? ` – Keyword: "${keyword}"` : ''}
+---
+
+# SEO Analysis for ${url}${keyword ? ` – Keyword: "${keyword}"` : ''}
 
 This analysis evaluates the website's SEO performance, focusing on content quality, technical SEO, and user experience.
 
 ---
 
-## **1. Content Depth and Quality** 📝
-### **Analysis:**
-- **Comprehensiveness:** [analysis of content depth]
-- **User Engagement:** [analysis of user engagement elements]
-- **Update Frequency:** [analysis of content freshness]
+1. Content Depth and Quality 📝
+**Analysis:**
+- Comprehensiveness: [analysis of content depth]
+- User Engagement: [analysis of user engagement elements]
+- Update Frequency: [analysis of content freshness]
 
-### **Action Items:**
+**Action Items:**
 ✅ [specific action item 1]
 ✅ [specific action item 2]
 ✅ [specific action item 3]
 
 ---
 
-## **2. URL Structure** 🔗
-### **Analysis:**
+2. URL Structure 🔗
+**Analysis:**
 - [analysis of URL structure]
 - [analysis of URL optimization]
 
-### **Action Items:**
+**Action Items:**
 ✅ [specific action item 1]
 ✅ [specific action item 2]
 
 ---
 
-## **3. H1 Title Tag** 🏷️
-### **Analysis:**
+3. H1 Title Tag 🏷️
+**Analysis:**
 - [analysis of title tag]
 - [analysis of keyword usage]
 
-### **Action Items:**
+**Action Items:**
 ✅ [specific action item 1]
 ✅ [specific action item 2]
 
 ---
 
-## **4. Internal Links** ↪️
-### **Analysis:**
+4. Internal Links ↪️
+**Analysis:**
 - [analysis of internal linking]
 - [analysis of link structure]
 
-### **Action Items:**
+**Action Items:**
 ✅ [specific action item 1]
 ✅ [specific action item 2]
 
 ---
 
-## **5. Meta Description** 📄
-### **Analysis:**
+5. Meta Description 📄
+**Analysis:**
 - [analysis of meta description]
 - [analysis of CTA effectiveness]
 
-### **Action Items:**
+**Action Items:**
 ✅ [specific action item 1]
 ✅ [specific action item 2]
 
 ---
 
-## **6. Readability** 📖
-### **Analysis:**
+6. Readability 📖
+**Analysis:**
 - [analysis of content readability]
 - [analysis of content structure]
 
-### **Action Items:**
+**Action Items:**
 ✅ [specific action item 1]
 ✅ [specific action item 2]
 
 ---
 
-## **🚀 Additional SEO & UX Recommendations**
+Additional SEO & UX Recommendations 🚀
 1. [recommendation 1]
 2. [recommendation 2]
 3. [recommendation 3]
@@ -186,7 +183,7 @@ This analysis evaluates the website's SEO performance, focusing on content quali
 
 ---
 
-## **Semantic Keywords** 🔑
+Semantic Keywords 🔑
 Based on the content and target keyword, here are the top 10 semantic keywords to consider:
 - [semantic keyword 1]
 - [semantic keyword 2]
@@ -201,10 +198,8 @@ Based on the content and target keyword, here are the top 10 semantic keywords t
 
 ---
 
-### **Final Verdict** ✅
-[summary of key findings and recommendations]
-
-Would you like a deeper dive into **technical SEO** (e.g., crawlability, backlinks) or **content strategy**?`;
+Final Verdict ✅
+[summary of key findings and recommendations]`;
 
     return await callTogetherAPI(prompt);
   } catch (error) {
