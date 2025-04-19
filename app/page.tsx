@@ -76,6 +76,7 @@ export default function SEOAnalyzer() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Button clicked, starting analysis...');
     setIsLoading(true);
     setError(null);
     setSeoData(null);
@@ -83,9 +84,11 @@ export default function SEOAnalyzer() {
     setAnalysis("");
 
     const formattedUrl = formatUrl(url);
+    console.log('Formatted URL:', formattedUrl);
     saveToHistory(url);
 
     try {
+      console.log('Making SEO analysis request...');
       // Make SEO analysis request
       const seoResponse = await fetch("/api/analyze", {
         method: "POST",
@@ -93,25 +96,31 @@ export default function SEOAnalyzer() {
         body: JSON.stringify({ url: formattedUrl, keyword }),
       });
 
+      console.log('SEO response status:', seoResponse.status);
       if (!seoResponse.ok) {
         const errorData = await seoResponse.json();
+        console.error('SEO analysis error:', errorData);
         throw new Error(errorData.error || 'Failed to analyze the website');
       }
 
       const seoData = await seoResponse.json();
+      console.log('SEO data received:', seoData);
       setSeoData(seoData);
       setAnalysis(seoData.analysis || "");
 
       // Try to get backlinks data if available
       try {
+        console.log('Making backlinks request...');
         const backlinkResponse = await fetch("/api/backlinks", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ url: formattedUrl }),
         });
 
+        console.log('Backlinks response status:', backlinkResponse.status);
         if (backlinkResponse.ok) {
           const backlinkData = await backlinkResponse.json();
+          console.log('Backlinks data received:', backlinkData);
           setBacklinkData(backlinkData);
         } else {
           console.warn('Backlinks analysis not available');

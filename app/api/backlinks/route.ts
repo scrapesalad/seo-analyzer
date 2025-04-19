@@ -1,17 +1,6 @@
 import { NextResponse } from "next/server";
 
-if (!process.env.GOOGLE_API_KEY) {
-  throw new Error('GOOGLE_API_KEY is not defined in environment variables');
-}
-
-if (!process.env.GOOGLE_CX) {
-  throw new Error('GOOGLE_CX is not defined in environment variables');
-}
-
-if (!process.env.SERP_API_KEY) {
-  throw new Error('SERP_API_KEY is not defined in environment variables');
-}
-
+// Make environment variable checks more graceful
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
 const GOOGLE_CX = process.env.GOOGLE_CX;
 const SERP_API_KEY = process.env.SERP_API_KEY;
@@ -24,6 +13,11 @@ interface BacklinkResult {
 }
 
 async function getGoogleBacklinks(domain: string): Promise<BacklinkResult[]> {
+  if (!GOOGLE_API_KEY || !GOOGLE_CX) {
+    console.warn('Google API credentials not configured');
+    return [];
+  }
+
   try {
     const cleanDomain = domain.replace(/^(https?:\/\/)?(www\.)?/, '');
     
@@ -51,6 +45,11 @@ async function getGoogleBacklinks(domain: string): Promise<BacklinkResult[]> {
 }
 
 async function getSerpBacklinks(domain: string): Promise<BacklinkResult[]> {
+  if (!SERP_API_KEY) {
+    console.warn('SERP API key not configured');
+    return [];
+  }
+
   try {
     const cleanDomain = domain.replace(/^(https?:\/\/)?(www\.)?/, '');
     
@@ -104,30 +103,35 @@ export async function POST(request: Request) {
     const { url } = await request.json();
     
     if (!url) {
-      return NextResponse.json({ error: 'URL is required' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'URL is required' },
+        { status: 400 }
+      );
     }
 
-    // Get backlinks from both sources in parallel
+    // Get backlinks from both sources
     const [googleBacklinks, serpBacklinks] = await Promise.all([
       getGoogleBacklinks(url),
       getSerpBacklinks(url)
     ]);
-    
-    // Combine and remove duplicates
+
+    // Combine and deduplicate backlinks
     const allBacklinks = removeDuplicateBacklinks([...googleBacklinks, ...serpBacklinks]);
     
-    // Calculate DA score based on total unique backlinks
+    // Calculate DA score
     const daScore = calculateDAScore(allBacklinks.length);
 
     return NextResponse.json({
       backlinks: allBacklinks,
       daScore,
       totalBacklinks: allBacklinks.length,
-      timestamp: new Date().toISOString()
+      sources: {
+        google: googleBacklinks.length,
+        serp: serpBacklinks.length
+      }
     });
-
   } catch (error) {
-    console.error('Error in backlinks route:', error);
+    console.error('Error processing backlinks:', error);
     return NextResponse.json(
       { error: 'Failed to analyze backlinks' },
       { status: 500 }
