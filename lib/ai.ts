@@ -103,7 +103,7 @@ export async function analyzeSEO(url: string, keyword?: string): Promise<string>
 
 Please provide a comprehensive SEO analysis in the following format:
 
-### **SEO Analysis for [URL] – Keyword: "[keyword]"**
+### **SEO Analysis for ${url}**${keyword ? ` – Keyword: "${keyword}"` : ''}
 
 This analysis evaluates the website's SEO performance, focusing on content quality, technical SEO, and user experience.
 
