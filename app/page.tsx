@@ -143,47 +143,64 @@ export default function SEOAnalyzer() {
       localStorage.setItem('searchHistory', JSON.stringify(updatedHistory));
       setUrlHistory(updatedHistory.map(entry => entry.url));
 
-      // Make API requests
-      const [analysisResponse, backlinksResponse] = await Promise.all([
-        fetch("/api/analyze", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            url: formattedUrl,
-            keyword: keyword || '',
+      // Add timeout handling
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 seconds timeout
+
+      try {
+        // Make API requests
+        const [analysisResponse, backlinksResponse] = await Promise.all([
+          fetch("/api/analyze", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              url: formattedUrl,
+              keyword: keyword || '',
+            }),
+            signal: controller.signal
           }),
-        }),
-        fetch("/api/backlinks", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            url: formattedUrl,
+          fetch("/api/backlinks", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              url: formattedUrl,
+            }),
+            signal: controller.signal
           }),
-        }),
-      ]);
+        ]);
 
-      if (!analysisResponse.ok) {
-        throw new Error('Failed to fetch analysis');
+        clearTimeout(timeoutId);
+
+        if (!analysisResponse.ok) {
+          const errorData = await analysisResponse.json();
+          throw new Error(errorData.error || errorData.details || 'Failed to fetch analysis');
+        }
+
+        if (!backlinksResponse.ok) {
+          console.warn('Backlinks data not available');
+        } else {
+          const backlinksData = await backlinksResponse.json();
+          setBacklinks(backlinksData.backlinks?.length || 0);
+          setBacklinkData(backlinksData);
+        }
+
+        const analysisData = await analysisResponse.json();
+        setAnalysis(analysisData.result);
+      } catch (error) {
+        if (error.name === 'AbortError') {
+          throw new Error('Analysis timed out. Please try again with a simpler URL or different keyword.');
+        }
+        throw error;
       }
-
-      if (!backlinksResponse.ok) {
-        console.warn('Backlinks data not available');
-      } else {
-        const backlinksData = await backlinksResponse.json();
-        setBacklinks(backlinksData.backlinks?.length || 0);
-        setBacklinkData(backlinksData);
-      }
-
-      const analysisData = await analysisResponse.json();
-      setAnalysis(analysisData.result);
       
     } catch (error) {
       console.error('Error:', error);
-      setError('Failed to analyze the URL. Please try again.');
+      setError(error instanceof Error ? error.message : 'Failed to analyze the URL. Please try again.');
+      setAnalysis(null);
     } finally {
       setIsLoading(false);
     }

@@ -32,8 +32,15 @@ interface GoogleResponse {
   items?: any[];
 }
 
+export const maxDuration = 60; // Reduced from 300 to 60 seconds
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: Request) {
   try {
+    // Add request timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 55000); // 55 seconds timeout
+
     // Log request details
     console.log('Received analyze request:', {
       method: request.method,
@@ -45,7 +52,10 @@ export async function POST(request: Request) {
     if (!process.env.TOGETHER_API_KEY) {
       console.error('TOGETHER_API_KEY is not configured');
       return new Response(
-        JSON.stringify({ error: 'API key not configured' }),
+        JSON.stringify({ 
+          error: 'API configuration error', 
+          details: 'The API key is not properly configured'
+        }),
         { status: 500, headers: { 'Content-Type': 'application/json' } }
       );
     }
@@ -59,8 +69,8 @@ export async function POST(request: Request) {
       console.error('Failed to parse request body:', error);
       return new Response(
         JSON.stringify({ 
-          error: 'Invalid JSON in request body',
-          details: error instanceof Error ? error.message : 'Unknown parsing error'
+          error: 'Invalid request',
+          details: error instanceof Error ? error.message : 'Invalid JSON in request body'
         }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
@@ -116,10 +126,17 @@ export async function POST(request: Request) {
 
     console.log('Cache miss, performing analysis for:', cacheKey);
 
-    // Perform analysis with validation
+    // Perform analysis with validation and timeout
     try {
-      const result = await analyzeSEO(body.url, body.keyword);
+      const result = await Promise.race([
+        analyzeSEO(body.url, body.keyword),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Analysis timeout')), 50000) // 50 seconds timeout
+        )
+      ]);
       
+      clearTimeout(timeoutId); // Clear the timeout if analysis completes successfully
+
       // Basic content validation
       if (!result || typeof result !== 'string') {
         console.error('Invalid analysis result:', {
@@ -205,10 +222,27 @@ export async function POST(request: Request) {
         error.message.includes('temporary')
       );
 
+      // Check for specific error types
+      let errorMessage = 'Analysis failed';
+      let errorDetails = error instanceof Error ? error.message : 'Unknown error during analysis';
+
+      if (error instanceof Error) {
+        if (error.message.includes('TOGETHER_API_KEY')) {
+          errorMessage = 'API configuration error';
+          errorDetails = 'The API key is not properly configured';
+        } else if (error.message.includes('rate limit')) {
+          errorMessage = 'Rate limit exceeded';
+          errorDetails = 'Please try again in a few minutes';
+        } else if (error.message.includes('timeout')) {
+          errorMessage = 'Request timeout';
+          errorDetails = 'The analysis took too long to complete. Please try again';
+        }
+      }
+
       return new Response(
         JSON.stringify({ 
-          error: 'Analysis failed',
-          details: error instanceof Error ? error.message : 'Unknown error during analysis',
+          error: errorMessage,
+          details: errorDetails,
           retryable: isTemporaryError
         }),
         { 
