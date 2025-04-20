@@ -7,8 +7,10 @@ import { Analytics } from "@vercel/analytics/react";
 
 const inter = Inter({ subsets: ["latin"] });
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://seo-analyzer-opal.vercel.app';
+
 export const metadata: Metadata = {
-  metadataBase: new URL('https://seo-analyzer-opal.vercel.app'),
+  metadataBase: new URL(APP_URL),
   title: {
     template: '%s | AI SEO Analyzer',
     default: 'AI SEO + Backlink Analyzer',
@@ -26,11 +28,11 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'AI SEO + Backlink Analyzer',
     description: 'AI-powered SEO analysis and backlink checker tool',
-    url: "https://seo-analyzer-opal.vercel.app",
+    url: APP_URL,
     siteName: "AI SEO Analyzer",
     images: [
       {
-        url: "https://seo-analyzer-opal.vercel.app/og-image.png",
+        url: `${APP_URL}/og-image.png`,
         width: 1200,
         height: 630,
       }
@@ -42,7 +44,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "AI SEO + Backlink Analyzer",
     description: "AI-powered SEO analysis and backlink checker tool",
-    images: ["https://seo-analyzer-opal.vercel.app/og-image.png"],
+    images: [`${APP_URL}/og-image.png`],
   },
   robots: {
     index: true,
@@ -59,7 +61,7 @@ export const metadata: Metadata = {
     google: process.env.NEXT_PUBLIC_GOOGLE_VERIFICATION,
   },
   alternates: {
-    canonical: "https://seo-analyzer-opal.vercel.app"
+    canonical: APP_URL
   },
 };
 
