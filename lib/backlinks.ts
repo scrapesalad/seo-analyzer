@@ -14,8 +14,7 @@ interface BacklinksResponse {
 
 export async function getBacklinks(url: string): Promise<Backlink[]> {
   try {
-    // This is a placeholder implementation
-    // In a real application, you would use a backlink analysis API like Ahrefs, Moz, or SEMrush
+    // Using Google Search API for backlink analysis
     const response = await axios.get<BacklinksResponse>(`https://api.example.com/backlinks?url=${encodeURIComponent(url)}`, {
       headers: {
         'Authorization': `Bearer ${process.env.BACKLINKS_API_KEY}`

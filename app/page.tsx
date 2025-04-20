@@ -102,7 +102,7 @@ export default function SEOAnalyzer() {
       const backlinkData = await backlinkResponse.json();
       console.log('Backlinks data received:', backlinkData);
       setBacklinkData(backlinkData);
-      setBacklinks(backlinkData.totalBacklinks || 0);
+      setBacklinks(backlinkData.backlinks?.length || 0);
       setDaScore(backlinkData.daScore);
 
     } catch (error) {
@@ -113,97 +113,77 @@ export default function SEOAnalyzer() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log('Button clicked, starting analysis...');
-    setIsLoading(true);
-    setError(null);
-    setSeoData(null);
-    setBacklinkData(null);
-    setAnalysis("");
-    setDaScore(null);
-
-    const formattedUrl = formatUrl(url);
-    console.log('Formatted URL:', formattedUrl);
-    saveToHistory(url);
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    
+    if (!url) {
+      setError('Please enter a URL');
+      return;
+    }
 
     try {
-      console.log('Making SEO analysis request...');
-      // Make SEO analysis request
-      const seoResponse = await fetch("/api/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: formattedUrl, keyword }),
-      });
-
-      console.log('SEO response status:', seoResponse.status);
-      let seoData;
-      try {
-        seoData = await seoResponse.json();
-      } catch (jsonError) {
-        console.error('Failed to parse SEO response:', jsonError);
-        throw new Error('Invalid response from server: Failed to parse JSON response');
-      }
+      setIsLoading(true);
+      setError(null);
       
-      if (!seoResponse.ok) {
-        console.error('SEO analysis error:', seoData);
-        throw new Error(seoData?.error || seoData?.details || 'Failed to analyze the website');
+      // Format the URL
+      let formattedUrl = url;
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        formattedUrl = `https://${url}`;
       }
 
-      if (!seoData?.analysis) {
-        console.error('Invalid SEO data format:', seoData);
-        throw new Error('Invalid response format: missing analysis data');
-      }
+      // Save to history
+      const historyEntry = {
+        url: formattedUrl,
+        keyword: keyword || '',
+        timestamp: new Date().toISOString(),
+      };
+      
+      const existingHistory = JSON.parse(localStorage.getItem('searchHistory') || '[]');
+      const updatedHistory = [historyEntry, ...existingHistory].slice(0, 10);
+      localStorage.setItem('searchHistory', JSON.stringify(updatedHistory));
+      setUrlHistory(updatedHistory.map(entry => entry.url));
 
-      console.log('SEO data received:', seoData);
-      setSeoData(seoData);
-      setAnalysis(seoData.analysis);
-
-      // Try to get backlinks data if available
-      try {
-        console.log('Making backlinks request...');
-        const backlinkResponse = await fetch("/api/backlinks", {
+      // Make API requests
+      const [analysisResponse, backlinksResponse] = await Promise.all([
+        fetch("/api/analyze", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url: formattedUrl }),
-        });
-
-        console.log('Backlinks response status:', backlinkResponse.status);
-        if (backlinkResponse.ok) {
-          const backlinkData = await backlinkResponse.json();
-          console.log('Backlinks data received:', backlinkData);
-          setBacklinkData(backlinkData);
-          setBacklinks(backlinkData.totalBacklinks || 0);
-        } else {
-          console.warn('Backlinks analysis not available');
-        }
-      } catch (backlinkError) {
-        console.warn('Failed to fetch backlinks:', backlinkError);
-      }
-
-      // Get Moz DA score
-      try {
-        console.log('Making Moz DA request...');
-        const mozResponse = await fetch("/api/moz-da", {
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            url: formattedUrl,
+            keyword: keyword || '',
+          }),
+        }),
+        fetch("/api/backlinks", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url: formattedUrl }),
-        });
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            url: formattedUrl,
+          }),
+        }),
+      ]);
 
-        if (mozResponse.ok) {
-          const mozData = await mozResponse.json();
-          console.log('Moz DA score received:', mozData);
-          setDaScore(mozData.da);
-        } else {
-          console.warn('Moz DA score not available');
-        }
-      } catch (mozError) {
-        console.warn('Failed to fetch Moz DA score:', mozError);
+      if (!analysisResponse.ok) {
+        throw new Error('Failed to fetch analysis');
       }
 
+      if (!backlinksResponse.ok) {
+        console.warn('Backlinks data not available');
+      } else {
+        const backlinksData = await backlinksResponse.json();
+        setBacklinks(backlinksData.backlinks?.length || 0);
+        setBacklinkData(backlinksData);
+      }
+
+      const analysisData = await analysisResponse.json();
+      setAnalysis(analysisData.result);
+      
     } catch (error) {
-      console.error('Analysis error:', error);
-      setError(error instanceof Error ? error.message : 'Failed to analyze the website');
+      console.error('Error:', error);
+      setError('Failed to analyze the URL. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -559,26 +539,15 @@ export default function SEOAnalyzer() {
                     <div className="mt-2 text-xs text-gray-500">
                       <div className="flex items-center gap-2">
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                          Google: {backlinkData.sources.google}
+                          Google: {backlinkData.sources.google || 0}
                         </span>
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                          SERP: {backlinkData.sources.serp}
+                          SERP: {backlinkData.sources.serp || 0}
                         </span>
                       </div>
                     </div>
                   )}
                 </div>
-                {daScore !== null && (
-                  <div className="bg-white p-3 sm:p-4 rounded-lg border border-gray-200">
-                    <div className="text-xs sm:text-sm text-gray-600">Moz Domain Authority (DA) Score</div>
-                    <div className="text-xl sm:text-2xl font-bold text-red-600">{daScore}/100</div>
-                    <div className="mt-2 text-xs text-gray-500">
-                      {daScore >= 70 ? "Strong Domain Authority" : 
-                       daScore >= 40 ? "Moderate Domain Authority" : 
-                       "Growing Domain Authority"}
-                    </div>
-                  </div>
-                )}
               </div>
 
               {backlinkData?.backlinks && backlinkData.backlinks.length > 0 ? (
